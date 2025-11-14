@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  username       String           @unique
+  email          String           @unique
+  passwordHash   String
+  age            Int?
+  role           Role             @default(USER)
+  profilePic     String?
+  chats1         Chat[]           @relation("ChatUser1")
+  chats2         Chat[]           @relation("ChatUser2")
+  messages       Message[]
+  flaggedMsgs    FlaggedMessage[] @relation("FlaggedByUser")
+  moderatedFlags FlaggedMessage[] @relation("FlaggedByModerator")
+  moderationLogs ModerationLog[]  @relation("ModeratorLogs")
+  auditLogs      AuditLog[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Chat {
+  id        Int       @id @default(autoincrement())
+  user1     User      @relation("ChatUser1", fields: [user1Id], references: [id])
+  user1Id   Int
+  user2     User      @relation("ChatUser2", fields: [user2Id], references: [id])
+  user2Id   Int
+  type      String    @default("direct")
+  title     String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id               Int             @id @default(autoincrement())
+  chat             Chat            @relation(fields: [chatId], references: [id])
+  chatId           Int
+  user             User            @relation(fields: [userId], references: [id])
+  userId           Int
+  messageText      String
+  toxicityScore    Float?
+  toxicityCategory String?
+  emotion          String?
+  isFlagged        Boolean         @default(false)
+  flaggedMessage   FlaggedMessage?
+  moderationLogs   ModerationLog[]
+  createdAt        DateTime        @default(now())
+}
+
+model FlaggedMessage {
+  id               Int      @id @default(autoincrement())
+  message          Message  @relation(fields: [messageId], references: [id])
+  messageId        Int      @unique // ✅ Make it one-to-one
+  user             User     @relation("FlaggedByUser", fields: [userId], references: [id])
+  userId           Int
+  flaggedBy        User?    @relation("FlaggedByModerator", fields: [flaggedById], references: [id])
+  flaggedById      Int?
+  toxicityCategory String?
+  confidence       Float?
+  createdAt        DateTime @default(now())
+}
+
+model ModerationLog {
+  id          Int      @id @default(autoincrement())
+  moderator   User     @relation("ModeratorLogs", fields: [moderatorId], references: [id])
+  moderatorId Int
+  message     Message  @relation(fields: [messageId], references: [id])
+  messageId   Int
+  action      String
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  eventType String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
