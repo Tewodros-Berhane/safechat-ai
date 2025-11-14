@@ -7,15 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: integrate with NextAuth
-    setTimeout(() => router.push("/chat"), 1000);
+    // TODO: Integrate with password reset API
+    setTimeout(() => router.push("/auth/login"), 1500);
   };
 
   return (
@@ -24,15 +24,15 @@ export default function LoginPage() {
         <CardHeader>
           <div className="text-center mb-2">
             <div className="flex justify-center mb-3">
-              <div className="bg-primary text-primary font-bold rounded-full w-10 h-10 flex items-center justify-center text-lg">
-                SafeChat.AI 
+              <div className="bg-primary text-black font-bold rounded-full w-10 h-10 flex items-center justify-center text-lg">
+              SafeChat.AI 
               </div>
             </div>
             <CardTitle className="text-2xl font-semibold text-gray-800">
-              Welcome back
+              Forgot your password?
             </CardTitle>
             <p className="text-gray-500 text-sm mt-1">
-              Sign in to your SafeChat.AI account
+              Don’t worry! Enter your email below and we’ll send you a reset link.
             </p>
           </div>
         </CardHeader>
@@ -41,24 +41,12 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Label htmlFor="email" className="text-gray-700">
-                Email
+                Email address
               </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
-                className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password" className="text-gray-700">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
               />
@@ -69,25 +57,17 @@ export default function LoginPage() {
               className="w-full bg-primary text-black hover:bg-blue-600 hover:text-white transition-all"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Sending link..." : "Send Reset Link"}
             </Button>
           </form>
 
           <div className="mt-6 text-sm text-center text-gray-600">
-            Don’t have an account?{" "}
+            Remember your password?{" "}
             <button
-              onClick={() => router.push("/auth/signup")}
+              onClick={() => router.push("/auth/login")}
               className="text-primary hover:underline font-medium"
             >
-              Sign up
-            </button>
-          </div>
-          <div className="mt-2 text-sm text-center">
-            <button
-              onClick={() => router.push("/auth/forgot-password")}
-              className="text-gray-500 hover:text-primary transition-colors"
-            >
-              Forgot password?
+              Log in
             </button>
           </div>
         </CardContent>

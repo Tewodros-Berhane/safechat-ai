@@ -1,8 +1,9 @@
 import type { Config } from "tailwindcss";
 import defaultTheme from "tailwindcss/defaultTheme";
+import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: "class",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -14,13 +15,13 @@ const config: Config = {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
       },
       colors: {
-        primary: "#3B82F6",   // Brand Blue
-        accent: "#1E293B",    // Card Background
-        background: "#0F172A" // Page Background
+        primary: "#3B82F6", 
+        accent: "#1E293B",    
+        background: "#0F172A" 
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animatePlugin],
 };
 
 export default config;

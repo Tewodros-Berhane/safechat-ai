@@ -6,74 +6,128 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Call signup API (/api/auth/signup)
-    setTimeout(() => router.push("/auth/login"), 1000);
+
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username");
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    if (!username || !email || !password) {
+      toast.warning("Please fill in all required fields.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      setLoading(false);
+
+      if (res.ok) {
+        toast.success("Account created 🎉 You can now sign in to SafeChat.AI");
+        router.push("/auth/login");
+      } else {
+        const { error } = await res.json();
+        toast.error(error || "Signup failed. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+      toast.error("Something went wrong. Please try again later.");
+    }
   };
 
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-      <Card className="w-[400px] bg-zinc-900 text-zinc-100 border-zinc-800">
+    <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB] px-4">
+      <Card className="w-full max-w-md bg-white border border-gray-200 shadow-md rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">
-            Create your account 🚀
-          </CardTitle>
+          <div className="text-center mb-2">
+            <div className="flex justify-center mb-3">
+              <div className="bg-primary text-black font-bold rounded-full w-10 h-10 flex items-center justify-center text-lg">
+                SafeChat.AI 
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-semibold text-gray-800">
+              Create your account 
+            </CardTitle>
+            <p className="text-gray-500 text-sm mt-1">
+              Join SafeChat.AI and experience safer conversations
+            </p>
+          </div>
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-gray-700">
+                Username
+              </Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="Your username"
-                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
               />
             </div>
+
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-700">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
-                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
               />
             </div>
+
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-gray-700">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
               />
             </div>
+
             <Button
               type="submit"
-              className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-300"
+              className="w-full bg-primary text-black hover:bg-blue-600 hover:text-white transition-all"
               disabled={loading}
             >
               {loading ? "Creating..." : "Sign Up"}
             </Button>
           </form>
-          <div className="mt-4 text-sm text-center text-zinc-400">
+
+          <div className="mt-6 text-sm text-center text-gray-600">
             Already have an account?{" "}
-            <span
+            <button
               onClick={() => router.push("/auth/login")}
-              className="text-zinc-100 hover:underline cursor-pointer"
+              className="text-primary hover:underline font-medium"
             >
               Log in
-            </span>
+            </button>
           </div>
         </CardContent>
       </Card>
