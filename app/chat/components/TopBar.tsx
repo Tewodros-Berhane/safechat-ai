@@ -113,19 +113,11 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
             </DropdownMenuLabel>
 
             <DropdownMenuItem
-              onClick={() => alert("TODO: open profile")}
+              onClick={() => router.push("/profile")}
               className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
             >
               <User className="w-4 h-4 text-gray-500" />
               <span>Profile</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              onClick={() => alert("TODO: open settings")}
-              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
-            >
-              <Settings className="w-4 h-4 text-gray-500" />
-              <span>Settings</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
