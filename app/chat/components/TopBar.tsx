@@ -10,37 +10,43 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut, Bell, Dot, ChevronRight } from "lucide-react";
+import { Bell, Dot, Menu, User, Settings, LogOut, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
-export default function TopBar() {
+export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const router = useRouter();
-  const [notifications, setNotifications] = useState([
+  const [notifications] = useState([
     { id: 1, message: "New message from John Doe", time: "2m ago" },
     { id: 2, message: "AI moderation report ready", time: "10m ago" },
     { id: 3, message: "Support Bot sent a reply", time: "30m ago" },
-    { id: 4, message: "Password successfully changed", time: "1h ago" },
-    { id: 5, message: "System update scheduled", time: "3h ago" },
   ]);
 
   const recentNotifications = notifications.slice(0, 4);
 
   return (
-    <header className="w-full h-14 border-b border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex items-center justify-between px-6">
-      {/* === Left: Branding === */}
+    <header className="w-full h-14 border-b border-gray-200 bg-white shadow flex items-center justify-between px-4 sm:px-6">
+      
+      {/* MOBILE MENU BUTTON */}
+      <button
+        className="sm:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+        onClick={onToggleSidebar}
+      >
+        <Menu className="w-6 h-6 text-gray-700" />
+      </button>
+
+      {/* BRANDING */}
       <div className="flex items-center gap-2">
         <div className="bg-[#007AFF] text-white font-semibold rounded-xl w-8 h-8 flex items-center justify-center">
           S
         </div>
-        <span className="text-lg font-semibold">
+        <span className="text-lg font-semibold hidden sm:block">
           SafeChat<span className="text-[#007AFF]">.AI</span>
         </span>
       </div>
 
-      {/* === Right Section === */}
+      {/* RIGHT SECTION */}
       <div className="flex items-center gap-4">
-        {/* === Notifications Dropdown === */}
+        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="relative hover:bg-gray-50 p-2 rounded-lg transition-all">
