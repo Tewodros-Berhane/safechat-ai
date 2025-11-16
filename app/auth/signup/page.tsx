@@ -17,12 +17,19 @@ export default function SignupPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const username = formData.get("username");
-    const email = formData.get("email");
-    const password = formData.get("password");
+    const username = (formData.get("username") as string)?.trim();
+    const email = (formData.get("email") as string)?.trim();
+    const password = (formData.get("password") as string)?.trim();
+    const confirmPassword = (formData.get("confirmPassword") as string)?.trim();
 
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword) {
       toast.warning("Please fill in all required fields.");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match. Please try again.");
       setLoading(false);
       return;
     }
@@ -37,7 +44,7 @@ export default function SignupPage() {
       setLoading(false);
 
       if (res.ok) {
-        toast.success("Account created 🎉 You can now sign in to SafeChat.AI");
+        toast.success("Account created successfully.You can now sign in to SafeChat.AI");
         router.push("/auth/login");
       } else {
         const { error } = await res.json();
@@ -78,6 +85,7 @@ export default function SignupPage() {
               </Label>
               <Input
                 id="username"
+                name="username"
                 type="text"
                 placeholder="Your username"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
@@ -91,6 +99,7 @@ export default function SignupPage() {
               </Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
@@ -104,6 +113,21 @@ export default function SignupPage() {
               </Label>
               <Input
                 id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword" className="text-gray-700">
+                Confirm Password
+              </Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
                 type="password"
                 placeholder="••••••••"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"

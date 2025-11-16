@@ -6,16 +6,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Integrate with password reset API
-    setTimeout(() => router.push("/auth/login"), 1500);
+
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string)?.trim();
+
+    if (!email) {
+      toast.warning("Please enter your email address.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        toast.success("A password reset link has been sent to your email.");
+        // Optionally, redirect after a short delay
+        setTimeout(() => router.push("/auth/login"), 3000);
+      } else {
+        const { error } = await res.json();
+        toast.error(error || "Could not send reset link. Please try again.");
+      }
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      toast.error("Something went wrong. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,7 +55,7 @@ export default function ForgotPasswordPage() {
           <div className="text-center mb-2">
             <div className="flex justify-center mb-3">
               <div className="bg-primary text-black font-bold rounded-full w-10 h-10 flex items-center justify-center text-lg">
-              SafeChat.AI 
+                Safechat.AI
               </div>
             </div>
             <CardTitle className="text-2xl font-semibold text-gray-800">
@@ -45,6 +75,7 @@ export default function ForgotPasswordPage() {
               </Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
