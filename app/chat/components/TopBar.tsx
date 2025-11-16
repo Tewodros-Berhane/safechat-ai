@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, Dot, Menu, User, Settings, LogOut, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const router = useRouter();
@@ -20,8 +21,32 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
     { id: 2, message: "AI moderation report ready", time: "10m ago" },
     { id: 3, message: "Support Bot sent a reply", time: "30m ago" },
   ]);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const recentNotifications = notifications.slice(0, 4);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        toast.success("Logged out successfully");
+        router.push("/auth/login");
+      } else {
+        const { error } = await response.json();
+        toast.error(error || "Failed to logout. Please try again.");
+        setIsLoggingOut(false);
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("An error occurred during logout. Please try again.");
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="w-full h-14 border-b border-gray-200 bg-white shadow flex items-center justify-between px-4 sm:px-6">
@@ -123,14 +148,12 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => {
-                // TODO: Replace with NextAuth signOut()
-                router.push("/auth/login");
-              }}
-              className="flex items-center gap-2 text-red-600 cursor-pointer hover:bg-red-50"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 text-red-600 cursor-pointer hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

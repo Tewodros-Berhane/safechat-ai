@@ -28,7 +28,13 @@ const handler = NextAuth({
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!isValid) throw new Error("Invalid password");
 
-        return user;
+        // Return user with id as string (NextAuth requirement) and exclude passwordHash
+        return {
+          id: String(user.id),
+          email: user.email,
+          name: user.username,
+          image: user.profilePic || undefined,
+        };
       },
     }),
   ],
