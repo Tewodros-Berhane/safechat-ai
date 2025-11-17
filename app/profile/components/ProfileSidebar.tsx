@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Camera, User } from "lucide-react";
+import { Camera, User, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface ProfileSidebarProps {
@@ -15,6 +15,9 @@ interface ProfileSidebarProps {
   dateJoined: Date;
   chatCount?: number;
   onPhotoChange?: (file: File) => void;
+  photoPreview?: string | null;
+  pendingPhotoFile?: File | null;
+  onCancelPhotoPreview?: () => void;
 }
 
 export default function ProfileSidebar({
@@ -26,6 +29,9 @@ export default function ProfileSidebar({
   dateJoined,
   chatCount = 0,
   onPhotoChange,
+  photoPreview,
+  pendingPhotoFile,
+  onCancelPhotoPreview,
 }: ProfileSidebarProps) {
   const [isHovering, setIsHovering] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +40,10 @@ export default function ProfileSidebar({
     const file = e.target.files?.[0];
     if (file && onPhotoChange) {
       onPhotoChange(file);
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -94,15 +104,34 @@ export default function ProfileSidebar({
           </div>
 
           {isEditMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full mb-4 text-[#007AFF] border-[#007AFF] hover:bg-[#007AFF]/10"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              Change Photo
-            </Button>
+            <>
+              {photoPreview ? (
+                <div className="w-full mb-4 space-y-2">
+                  <div className="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                    <span className="text-sm text-green-700 font-medium">Preview</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-red-600 border-red-300 hover:bg-red-50"
+                    onClick={onCancelPhotoPreview}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel Preview
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mb-4 text-[#007AFF] border-[#007AFF] hover:bg-[#007AFF]/10"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Change Photo
+                </Button>
+              )}
+            </>
           )}
 
           <h2 className="text-xl font-semibold text-gray-900 mb-1">{name}</h2>

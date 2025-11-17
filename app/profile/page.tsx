@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Edit, Save, X } from "lucide-react";
+import { Edit, Save, X, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import ProfileSidebar from "./components/ProfileSidebar";
 import ProfileForm from "./components/ProfileForm";
@@ -11,8 +12,11 @@ import DangerZone from "./components/DangerZone";
 import { useUserStore } from "@/stores/useUserStore";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user, loading, fetchUser, updateUser } = useUserStore();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [preferences, setPreferences] = useState({
     twoFactorEnabled: false,
     darkMode: false,
@@ -27,6 +31,11 @@ export default function ProfilePage() {
   }, [user, fetchUser]);
 
   const handleSave = async () => {
+    // Save photo if there's a pending one
+    if (pendingPhotoFile) {
+      await handleSavePhoto();
+    }
+    
     // TODO: Implement actual API call to save profile data
     // For now, just update the store
     toast.success("Profile updated successfully");
@@ -34,6 +43,9 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
+    // Clear photo preview when canceling
+    setPhotoPreview(null);
+    setPendingPhotoFile(null);
     setIsEditMode(false);
   };
 
@@ -62,31 +74,70 @@ export default function ProfilePage() {
     }
   };
 
-  const handlePhotoChange = async (file: File) => {
-    // TODO: Implement actual photo upload API call
+  const handlePhotoChange = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    // Store the file for later upload
+    setPendingPhotoFile(file);
+
+    // Create preview
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const base64 = reader.result as string;
-        const response = await fetch("/api/user", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profilePic: base64 }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to update profile photo");
-        }
-
-        const result = await response.json();
-        updateUser(result.user);
-        toast.success("Profile photo updated");
-      } catch (error) {
-        console.error("Error updating photo:", error);
-        toast.error("Failed to update profile photo");
-      }
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSavePhoto = async () => {
+    if (!pendingPhotoFile) {
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64 = reader.result as string;
+          const response = await fetch("/api/user", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profilePic: base64 }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to update profile photo");
+          }
+
+          const result = await response.json();
+          updateUser(result.user);
+          setPhotoPreview(null);
+          setPendingPhotoFile(null);
+          toast.success("Profile photo updated");
+        } catch (error) {
+          console.error("Error updating photo:", error);
+          toast.error("Failed to update profile photo");
+        }
+      };
+      reader.readAsDataURL(pendingPhotoFile);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      toast.error("Failed to process image");
+    }
+  };
+
+  const handleCancelPhotoPreview = () => {
+    setPhotoPreview(null);
+    setPendingPhotoFile(null);
   };
 
   const handleTwoFactorToggle = (enabled: boolean) => {
@@ -120,9 +171,19 @@ export default function ProfilePage() {
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">Profile</h1>
-            <p className="text-sm sm:text-base text-gray-600">Manage your account details and preferences.</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">Profile</h1>
+              <p className="text-sm sm:text-base text-gray-600">Manage your account details and preferences.</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {isEditMode ? (
@@ -168,13 +229,16 @@ export default function ProfilePage() {
               <div className="lg:shrink-0">
                 <ProfileSidebar
                   isEditMode={isEditMode}
-                  profilePic={user.profilePic}
+                  profilePic={photoPreview || user.profilePic}
                   name={user.username}
                   username={user.username}
                   role={user.role}
                   dateJoined={new Date(user.createdAt)}
                   chatCount={user.chatCount || 0}
                   onPhotoChange={handlePhotoChange}
+                  photoPreview={photoPreview}
+                  pendingPhotoFile={pendingPhotoFile}
+                  onCancelPhotoPreview={handleCancelPhotoPreview}
                 />
               </div>
 

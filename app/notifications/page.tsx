@@ -42,18 +42,21 @@ export default function NotificationsPage() {
     setUpdating(id);
     await markNotificationAsRead(id);
     setUpdating(null);
+    toast.success("Notification marked as read!")
   };
 
   const handleMarkAllAsRead = async () => {
     setUpdating(0); // Use 0 as a special ID for "all"
     await markAllNotificationsAsRead();
     setUpdating(null);
+    toast.success("All notification are marked as read!")
   };
 
   const handleDeleteNotification = async (id: number) => {
     setUpdating(id);
     await deleteNotification(id);
     setUpdating(null);
+    toast.success("Notification deleted successfully!")
   };
 
   const getNotificationIcon = (type: NotificationType) => {
@@ -149,7 +152,7 @@ export default function NotificationsPage() {
           <Card>
             <CardContent className="py-12">
               <div className="flex flex-col items-center justify-center text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007AFF] mb-4"></div>
+                {/* <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007AFF] mb-4"></div> */}
                 <p className="text-gray-500">Loading notifications...</p>
               </div>
             </CardContent>
