@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,8 +16,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: integrate with NextAuth
-    setTimeout(() => router.push("/chat"), 1000);
+
+    const form = e.target as HTMLFormElement;
+    const email = (form.email as HTMLInputElement).value;
+    const password = (form.password as HTMLInputElement).value;
+
+    const res = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (res?.error) {
+      toast.error(res.error === "Invalid password" ? "Incorrect password" : res.error);
+      return;
+    }
+
+    toast.success("Logged in successfully!");
+
+    router.push("/chat");
   };
 
   return (
@@ -46,6 +67,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                name="email"
                 placeholder="you@example.com"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
@@ -58,6 +80,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                name="password"
                 placeholder="••••••••"
                 className="bg-white border-gray-300 text-gray-800 focus:ring-2 focus:ring-primary/40"
                 required
