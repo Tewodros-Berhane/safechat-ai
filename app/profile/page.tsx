@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Save, X } from "lucide-react";
 import { toast } from "sonner";
@@ -8,66 +8,83 @@ import ProfileSidebar from "./components/ProfileSidebar";
 import ProfileForm from "./components/ProfileForm";
 import SecuritySettings from "./components/SecuritySettings";
 import DangerZone from "./components/DangerZone";
-
-// TODO: Replace with actual session/user data from NextAuth
-const mockUserData = {
-  id: 1,
-  fullName: "John Doe",
-  username: "johndoe",
-  email: "john.doe@example.com",
-  profilePic: null as string | null,
-  role: "USER" as const,
-  dateJoined: new Date("2024-06-15"),
-  chatCount: 24,
-  emailVerified: true,
-  twoFactorEnabled: false,
-  darkMode: false,
-  aiModerationReports: true,
-  notificationEmails: true,
-};
+import { useUserStore } from "@/stores/useUserStore";
 
 export default function ProfilePage() {
+  const { user, loading, fetchUser, updateUser } = useUserStore();
   const [isEditMode, setIsEditMode] = useState(false);
-  const [userData, setUserData] = useState(mockUserData);
   const [preferences, setPreferences] = useState({
-    twoFactorEnabled: mockUserData.twoFactorEnabled,
-    darkMode: mockUserData.darkMode,
-    aiModerationReports: mockUserData.aiModerationReports,
-    notificationEmails: mockUserData.notificationEmails,
+    twoFactorEnabled: false,
+    darkMode: false,
+    aiModerationReports: true,
+    notificationEmails: true,
   });
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (!user) {
+      fetchUser();
+    }
+  }, [user, fetchUser]);
+
+  const handleSave = async () => {
     // TODO: Implement actual API call to save profile data
+    // For now, just update the store
     toast.success("Profile updated successfully");
     setIsEditMode(false);
   };
 
   const handleCancel = () => {
-    // Reset to original data
-    setUserData(mockUserData);
     setIsEditMode(false);
   };
 
-  const handleProfileUpdate = (data: {
-    fullName: string;
-    username: string;
-    email: string;
+  const handleProfileUpdate = async (data: {
+    fullName?: string;
+    username?: string;
+    email?: string;
   }) => {
-    setUserData((prev) => ({
-      ...prev,
-      ...data,
-    }));
+    try {
+      const response = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      const result = await response.json();
+      updateUser(result.user);
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    }
   };
 
   const handlePhotoChange = async (file: File) => {
     // TODO: Implement actual photo upload API call
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setUserData((prev) => ({
-        ...prev,
-        profilePic: reader.result as string,
-      }));
-      toast.success("Profile photo updated");
+    reader.onloadend = async () => {
+      try {
+        const base64 = reader.result as string;
+        const response = await fetch("/api/user", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profilePic: base64 }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update profile photo");
+        }
+
+        const result = await response.json();
+        updateUser(result.user);
+        toast.success("Profile photo updated");
+      } catch (error) {
+        console.error("Error updating photo:", error);
+        toast.error("Failed to update profile photo");
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -141,36 +158,48 @@ export default function ProfilePage() {
 
         {/* Main Layout - Two Column */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Sidebar */}
-          <div className="lg:shrink-0">
-            <ProfileSidebar
-              isEditMode={isEditMode}
-              profilePic={userData.profilePic}
-              name={userData.fullName}
-              username={userData.username}
-              role={userData.role}
-              dateJoined={userData.dateJoined}
-              chatCount={userData.chatCount}
-              onPhotoChange={handlePhotoChange}
-            />
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007AFF]"></div>
+            </div>
+          ) : user ? (
+            <>
+              {/* Left Sidebar */}
+              <div className="lg:shrink-0">
+                <ProfileSidebar
+                  isEditMode={isEditMode}
+                  profilePic={user.profilePic}
+                  name={user.username}
+                  username={user.username}
+                  role={user.role}
+                  dateJoined={new Date(user.createdAt)}
+                  chatCount={user.chatCount || 0}
+                  onPhotoChange={handlePhotoChange}
+                />
+              </div>
 
-          {/* Right Content Area */}
-          <div className="flex-1 space-y-6">
-            <ProfileForm
-              isEditMode={isEditMode}
-              fullName={userData.fullName}
-              username={userData.username}
-              email={userData.email}
-              dateJoined={userData.dateJoined}
-              role={userData.role}
-              emailVerified={userData.emailVerified}
-              onUpdate={handleProfileUpdate}
-            />
+              {/* Right Content Area */}
+              <div className="flex-1 space-y-6">
+                <ProfileForm
+                  isEditMode={isEditMode}
+                  fullName={user.username}
+                  username={user.username}
+                  email={user.email}
+                  dateJoined={new Date(user.createdAt)}
+                  role={user.role}
+                  emailVerified={true}
+                  onUpdate={handleProfileUpdate}
+                />
 
-            <SecuritySettings/>
-            <DangerZone />
-          </div>
+                <SecuritySettings/>
+                <DangerZone />
+              </div>
+            </>
+          ) : (
+            <div className="text-center text-gray-400 py-12">
+              Failed to load user data. Please try refreshing the page.
+            </div>
+          )}
         </div>
       </div>
     </div>

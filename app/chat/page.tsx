@@ -14,14 +14,14 @@ export default function ChatPage() {
       
       <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
 
         {/* === MOBILE SIDEBAR (Slide-In) === */}
         <aside
           className={`
             fixed inset-y-0 left-0 w-72 bg-white shadow-lg z-30 transform transition-transform duration-300
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            sm:hidden
+            sm:hidden overflow-hidden
           `}
         >
           <ChatSidebar onSelectChat={(id) => { setSelectedChat(id); setSidebarOpen(false); }} selectedChat={selectedChat} />
@@ -36,13 +36,13 @@ export default function ChatPage() {
         )}
 
         {/* === DESKTOP SIDEBAR === */}
-        <aside className="hidden sm:block w-[320px] bg-white border-r border-gray-200 shadow-sm">
+        <aside className="hidden sm:block w-[320px] h-full min-h-0 bg-white border-r border-gray-200 shadow-sm overflow-hidden">
           <ChatSidebar onSelectChat={setSelectedChat} selectedChat={selectedChat} />
         </aside>
 
         {/* === MAIN CHAT === */}
-        <main className="flex-1 flex flex-col p-4">
-          <div className="flex-1 rounded-2xl bg-white shadow border overflow-hidden">
+        <main className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
+          <div className="flex-1 min-h-0 rounded-2xl bg-white shadow border overflow-hidden">
             {selectedChat ? (
               <ChatWindow chatId={selectedChat} />
             ) : (

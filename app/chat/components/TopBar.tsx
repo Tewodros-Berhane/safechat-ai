@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -10,20 +11,30 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Dot, Menu, User, Settings, LogOut, ChevronRight } from "lucide-react";
+import { Bell, Dot, Menu, User, LogOut, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useUserStore } from "@/stores/useUserStore";
+import { useNotificationsStore } from "@/stores/useNotificationsStore";
+import { useChatsStore } from "@/stores/useChatsStore";
+import { formatDistanceToNow } from "date-fns";
 
 export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const router = useRouter();
-  const [notifications] = useState([
-    { id: 1, message: "New message from John Doe", time: "2m ago" },
-    { id: 2, message: "AI moderation report ready", time: "10m ago" },
-    { id: 3, message: "Support Bot sent a reply", time: "30m ago" },
-  ]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const recentNotifications = notifications.slice(0, 4);
+  // Zustand stores
+  const { user, fetchUser, clearUser } = useUserStore();
+  const { getRecentNotifications, getUnreadCount, fetchNotifications, clearAll: clearNotifications } = useNotificationsStore();
+  const { clearAll: clearChats } = useChatsStore();
+
+  useEffect(() => {
+    fetchUser();
+    fetchNotifications();
+  }, [fetchUser, fetchNotifications]);
+
+  const recentNotifications = getRecentNotifications(4);
+  const unreadCount = getUnreadCount();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -34,6 +45,10 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
       });
 
       if (response.ok) {
+        // Clear all stores on logout
+        clearUser();
+        clearNotifications();
+        clearChats();
         toast.success("Logged out successfully");
         router.push("/auth/login");
       } else {
@@ -76,7 +91,9 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
           <DropdownMenuTrigger asChild>
             <button className="relative hover:bg-gray-50 p-2 rounded-lg transition-all">
               <Bell className="w-5 h-5 text-gray-600" />
-              <Dot className="absolute top-1 right-1 w-4 h-4 text-[#007AFF]" />
+              {unreadCount > 0 && (
+                <Dot className="absolute top-1 right-1 w-4 h-4 text-[#007AFF]" />
+              )}
             </button>
           </DropdownMenuTrigger>
 
@@ -94,8 +111,10 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
                   key={notif.id}
                   className="flex flex-col items-start gap-1 px-4 py-2 cursor-pointer hover:bg-gray-50"
                 >
-                  <span className="text-sm text-gray-800">{notif.message}</span>
-                  <span className="text-xs text-gray-500">{notif.time}</span>
+                  <span className="text-sm text-gray-800">{notif.title || notif.content || "Notification"}</span>
+                  <span className="text-xs text-gray-500">
+                    {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                  </span>
                 </DropdownMenuItem>
               ))
             ) : (
@@ -107,7 +126,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => alert("TODO: Go to notifications page")}
+              onClick={() => router.push("/notifications")}
               className="text-center text-[#007AFF] text-sm font-medium py-2 hover:bg-blue-50 cursor-pointer"
             >
               View all notifications <ChevronRight/>
@@ -120,12 +139,12 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-all">
               <Avatar className="h-9 w-9 border border-gray-200">
-                <AvatarImage src="/placeholder-user.jpg" alt="User" />
+                <AvatarImage src={user?.profilePic || undefined} alt={user?.username || "User"} />
                 <AvatarFallback className="bg-[#007AFF]/10 text-[#007AFF] font-semibold">
-                  M
-                </AvatarFallback>
+                  {user?.username?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback> 
               </Avatar>
-              <span className="text-sm font-medium text-gray-700">Michael Doe</span>
+              <span className="text-sm font-medium text-gray-700">{user?.username || "User"}</span>
             </div>
           </DropdownMenuTrigger>
 

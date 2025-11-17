@@ -1,46 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import MessageInput from "./MessageInput";
 import MessageBubble from "./MessageBubble";
+import { useChatsStore } from "@/stores/useChatsStore";
+import { useUserStore } from "@/stores/useUserStore";
+import { toast } from "sonner";
 
 interface ChatWindowProps {
   chatId: number;
 }
 
 export default function ChatWindow({ chatId }: ChatWindowProps) {
-  const [messages, setMessages] = useState<{ id: number; sender: string; text: string }[]>([]);
+  const { messages, getChatById, fetchMessages, sendMessage, getOtherUser, messagesLoading } =
+    useChatsStore();
+  const { user } = useUserStore();
 
   useEffect(() => {
-    // TODO: Fetch messages from API
-    setMessages([
-      { id: 1, sender: "John Doe", text: "Hey, how are you?" },
-      { id: 2, sender: "You", text: "I’m good, thanks!" },
-    ]);
-  }, [chatId]);
+    fetchMessages(chatId);
+  }, [chatId, fetchMessages]);
 
-  const handleSend = (newMessage: string) => {
-    // TODO: Send via API & integrate AI moderation
-    setMessages((prev) => [...prev, { id: Date.now(), sender: "You", text: newMessage }]);
+  const chat = getChatById(chatId);
+  const otherUser = user && chat ? getOtherUser(chat, user.id) : null;
+  const displayName = otherUser?.username || "Unknown User";
+  const chatMessages = messages[chatId] || [];
+  const isLoading = messagesLoading[chatId] || false;
+
+  const handleSend = async (newMessage: string) => {
+    const sentMessage = await sendMessage(chatId, newMessage);
+    if (!sentMessage) {
+      toast.error("Failed to send message");
+    }
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-white">
-        <h2 className="font-semibold text-gray-900 text-lg">John Doe</h2>
+      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 bg-white">
+        <h2 className="font-semibold text-gray-900 text-lg">{displayName}</h2>
         <p className="text-sm text-gray-500">Active now</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 bg-[#F9FAFB] space-y-3">
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} text={msg.text} sender={msg.sender} />
-        ))}
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#F9FAFB] space-y-3">
+        {isLoading ? (
+          <div className="text-center text-gray-400 py-12 text-sm">Loading messages...</div>
+        ) : (
+          <>
+            {chatMessages.map((msg) => {
+              const isUser = msg.userId === user?.id;
+              const senderName = isUser ? "You" : msg.user?.username || "Unknown";
+
+              return (
+                <MessageBubble key={msg.id} text={msg.messageText} sender={senderName} />
+              );
+            })}
+
+            {chatMessages.length === 0 && (
+              <div className="text-center text-gray-400 py-12 text-sm">
+                No messages yet. Start the conversation!
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Input */}
-      <div className="px-6 py-4 border-t border-gray-200 bg-white">
+      <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white">
         <MessageInput onSend={handleSend} />
       </div>
     </div>
