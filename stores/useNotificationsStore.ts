@@ -44,6 +44,7 @@ interface NotificationsState {
   // Utilities
   getUnreadCount: () => number;
   getRecentNotifications: (limit?: number) => Notification[];
+  getUnreadNotifications: (limit?: number) => Notification[];
   clearAll: () => void;
 }
 
@@ -169,6 +170,13 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   getRecentNotifications: (limit = 4) => {
     return get().notifications.slice(0, limit);
+  },
+
+  getUnreadNotifications: (limit = 3) => {
+    return get()
+      .notifications
+      .filter((notif) => !notif.isRead)
+      .slice(0, limit);
   },
 
   clearAll: () =>

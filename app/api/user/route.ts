@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { PrismaClient } from "@prisma/client";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
+import path from "path";
+import fs from "fs/promises";
 
 const prisma = new PrismaClient();
 
@@ -104,7 +106,7 @@ export async function GET() {
 }
 
 // PATCH update user
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
     // Try getServerSession first
     let session = await getServerSession(authOptions);
@@ -126,8 +128,49 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { username, age, profilePic } = body;
+    const contentType = request.headers.get("content-type") || "";
+    const previousProfilePic = user.profilePic;
+
+    let username: string | undefined;
+    let age: number | undefined;
+    let profilePicPath: string | undefined;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const usernameValue = formData.get("username");
+      const ageValue = formData.get("age");
+      const profilePic = formData.get("profilePic");
+
+      username = typeof usernameValue === "string" && usernameValue.trim() ? usernameValue : undefined;
+      age = typeof ageValue === "string" && ageValue.trim() ? Number(ageValue) : undefined;
+      if (age !== undefined && Number.isNaN(age)) {
+        age = undefined;
+      }
+
+      if (profilePic instanceof File) {
+        const arrayBuffer = await profilePic.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const uploadDir = path.join(process.cwd(), "public", "uploads", "profiles");
+        await fs.mkdir(uploadDir, { recursive: true });
+
+        const ext = path.extname(profilePic.name) || ".png";
+        const fileName = `${user.id}-${Date.now()}${ext}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        await fs.writeFile(filePath, buffer);
+        profilePicPath = `/uploads/profiles/${fileName}`;
+      }
+    } else {
+      const body = await request.json();
+      username = body.username;
+      age = typeof body.age === "number" ? body.age : undefined;
+
+      // Accept direct path updates for future flexibility, but avoid storing base64 blobs.
+      if (body.profilePic && typeof body.profilePic === "string" && body.profilePic.startsWith("/")) {
+        profilePicPath = body.profilePic;
+      }
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -135,7 +178,7 @@ export async function PATCH(request: Request) {
       data: {
         ...(username && { username }),
         ...(age !== undefined && { age }),
-        ...(profilePic !== undefined && { profilePic }),
+        ...(profilePicPath !== undefined && { profilePic: profilePicPath }),
       },
       select: {
         id: true,
@@ -148,6 +191,18 @@ export async function PATCH(request: Request) {
         updatedAt: true,
       },
     });
+
+    // Clean up old profile image if we successfully saved a new one
+    if (
+      profilePicPath &&
+      previousProfilePic &&
+      previousProfilePic.startsWith("/uploads/profiles/")
+    ) {
+      const oldFilePath = path.join(process.cwd(), "public", previousProfilePic);
+      fs.unlink(oldFilePath).catch(() => {
+        // Ignore cleanup errors
+      });
+    }
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

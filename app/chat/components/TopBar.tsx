@@ -25,7 +25,12 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
 
   // Zustand stores
   const { user, fetchUser, clearUser } = useUserStore();
-  const { getRecentNotifications, getUnreadCount, fetchNotifications, clearAll: clearNotifications } = useNotificationsStore();
+  const {
+    getUnreadNotifications,
+    getUnreadCount,
+    fetchNotifications,
+    clearAll: clearNotifications,
+  } = useNotificationsStore();
   const { clearAll: clearChats } = useChatsStore();
 
   useEffect(() => {
@@ -33,7 +38,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
     fetchNotifications();
   }, [fetchUser, fetchNotifications]);
 
-  const recentNotifications = getRecentNotifications(4);
+  const unreadNotifications = getUnreadNotifications(3);
   const unreadCount = getUnreadCount();
 
   const handleLogout = async () => {
@@ -105,8 +110,8 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
               Notifications
             </DropdownMenuLabel>
 
-            {recentNotifications.length > 0 ? (
-              recentNotifications.map((notif) => (
+            {unreadNotifications.length > 0 ? (
+              unreadNotifications.map((notif) => (
                 <DropdownMenuItem
                   key={notif.id}
                   className="flex flex-col items-start gap-1 px-4 py-2 cursor-pointer hover:bg-gray-50"

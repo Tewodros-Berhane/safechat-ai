@@ -104,34 +104,26 @@ export default function ProfilePage() {
     }
 
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64 = reader.result as string;
-          const response = await fetch("/api/user", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profilePic: base64 }),
-          });
+      const formData = new FormData();
+      formData.append("profilePic", pendingPhotoFile);
 
-          if (!response.ok) {
-            throw new Error("Failed to update profile photo");
-          }
+      const response = await fetch("/api/user", {
+        method: "PATCH",
+        body: formData,
+      });
 
-          const result = await response.json();
-          updateUser(result.user);
-          setPhotoPreview(null);
-          setPendingPhotoFile(null);
-          toast.success("Profile photo updated");
-        } catch (error) {
-          console.error("Error updating photo:", error);
-          toast.error("Failed to update profile photo");
-        }
-      };
-      reader.readAsDataURL(pendingPhotoFile);
+      if (!response.ok) {
+        throw new Error("Failed to update profile photo");
+      }
+
+      const result = await response.json();
+      updateUser(result.user);
+      setPhotoPreview(null);
+      setPendingPhotoFile(null);
+      toast.success("Profile photo updated");
     } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to process image");
+      console.error("Error updating photo:", error);
+      toast.error("Failed to update profile photo");
     }
   };
 
