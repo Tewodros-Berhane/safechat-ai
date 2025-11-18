@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { PrismaClient } from "@prisma/client";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import path from "path";
 import fs from "fs/promises";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // Helper function to get session from token
 async function getSessionFromRequest() {

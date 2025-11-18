@@ -141,6 +141,10 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     }),
 
   fetchChats: async () => {
+    const { loading, chats } = get();
+    if (loading || chats.length > 0) {
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const response = await fetch("/api/chats");

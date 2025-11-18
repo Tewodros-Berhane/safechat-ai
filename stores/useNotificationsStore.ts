@@ -85,6 +85,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     })),
 
   fetchNotifications: async () => {
+    const { loading, notifications } = get();
+    if (loading || notifications.length > 0) {
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const response = await fetch("/api/notifications");

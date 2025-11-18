@@ -24,7 +24,7 @@ interface UserState {
   fetchUser: () => Promise<void>;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   loading: false,
   error: null,
@@ -39,6 +39,10 @@ export const useUserStore = create<UserState>((set) => ({
   clearUser: () => set({ user: null, error: null }),
 
   fetchUser: async () => {
+    const { loading, user } = get();
+    if (loading || user) {
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const response = await fetch("/api/user");
