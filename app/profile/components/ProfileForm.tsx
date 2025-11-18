@@ -9,27 +9,23 @@ import { format } from "date-fns";
 
 interface ProfileFormProps {
   isEditMode: boolean;
-  fullName: string;
   username: string;
   email: string;
   dateJoined: Date;
   role: "USER" | "MODERATOR" | "ADMIN";
   emailVerified?: boolean;
-  onUpdate: (data: { fullName: string; username: string; email: string }) => void;
+  onUpdate: (data: { username: string; email: string }) => void;
 }
 
 export default function ProfileForm({
   isEditMode,
-  fullName,
   username,
   email,
   dateJoined,
   role,
-  emailVerified = false,
   onUpdate,
 }: ProfileFormProps) {
   const [formData, setFormData] = useState({
-    fullName,
     username,
     email,
   });
@@ -64,28 +60,6 @@ export default function ProfileForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Full Name */}
-        <div className="space-y-2">
-          <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
-            Full Name
-          </Label>
-          <div className="relative">
-            <Input
-              id="fullName"
-              value={formData.fullName}
-              onChange={(e) => handleChange("fullName", e.target.value)}
-              onBlur={handleBlur}
-              disabled={!isEditMode}
-              className={`transition-all duration-200 ${
-                isEditMode
-                  ? "border-gray-300 focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20"
-                  : "border-gray-100 bg-gray-50"
-              }`}
-              placeholder="Enter your full name"
-            />
-          </div>
-        </div>
-
         {/* Username */}
         <div className="space-y-2">
           <Label htmlFor="username" className="text-sm font-medium text-gray-700">
@@ -129,12 +103,6 @@ export default function ProfileForm({
               }`}
               placeholder="Enter your email"
             />
-            {emailVerified && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-xs font-medium">Verified</span>
-              </div>
-            )}
           </div>
         </div>
 

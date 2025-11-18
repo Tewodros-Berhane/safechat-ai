@@ -26,6 +26,7 @@ export default function SecuritySettings() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePasswordChange = async () => {
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
@@ -43,10 +44,22 @@ export default function SecuritySettings() {
       return;
     }
 
-    // TODO: Implement actual password change API call
     try {
-      // Simulated API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setIsSubmitting(true);
+      const response = await fetch("/api/user/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to change password");
+      }
+
       toast.success("Password changed successfully");
       setIsChangePasswordOpen(false);
       setPasswordData({
@@ -55,7 +68,11 @@ export default function SecuritySettings() {
         confirmPassword: "",
       });
     } catch (error) {
-      toast.error("Failed to change password. Please try again.");
+      const message =
+        error instanceof Error ? error.message : "Failed to change password. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,14 +162,16 @@ export default function SecuritySettings() {
                 <Button
                   variant="outline"
                   onClick={() => setIsChangePasswordOpen(false)}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handlePasswordChange}
-                  className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+                  className="bg-[#007AFF] hover:bg-[#007AFF]/90 text-white"
+                  disabled={isSubmitting}
                 >
-                  Update Password
+                  {isSubmitting ? "Updating..." : "Update Password"}
                 </Button>
               </DialogFooter>
             </DialogContent>
