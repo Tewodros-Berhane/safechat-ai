@@ -14,11 +14,16 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ chatId }: ChatWindowProps) {
-  const { messages, getChatById, fetchMessages, sendMessage, getOtherUser, messagesLoading } =
-    useChatsStore();
+  const chat = useChatsStore(
+    (state) => state.chats.find((chatItem) => chatItem.id === chatId)
+  );
+  const chatMessages = useChatsStore((state) => state.messages[chatId]);
+  const isLoading = useChatsStore((state) => state.messagesLoading[chatId]);
+  const fetchMessages = useChatsStore((state) => state.fetchMessages);
+  const sendMessage = useChatsStore((state) => state.sendMessage);
+  const getOtherUser = useChatsStore((state) => state.getOtherUser);
   const { user } = useUserStore();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const chat = getChatById(chatId);
   const otherUser = user && chat ? getOtherUser(chat, user.id) : null;
   const displayName = otherUser?.username || "Unknown User";
   const presence = getPresenceInfo({
@@ -26,9 +31,6 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
     isOnline: otherUser?.isOnline,
     lastSeen: otherUser?.lastSeen,
   });
-  const chatMessages = messages[chatId] || [];
-  const isLoading = messagesLoading[chatId] || false;
-
   useEffect(() => {
     fetchMessages(chatId);
   }, [chatId, fetchMessages]);
@@ -39,7 +41,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
       return;
     }
     container.scrollTop = container.scrollHeight;
-  }, [chatId, chatMessages.length]);
+  }, [chatId, chatMessages?.length]);
 
   const handleSend = async (newMessage: string) => {
     const sentMessage = await sendMessage(chatId, newMessage);
@@ -76,11 +78,11 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#F7FAFE] space-y-4"
       >
-        {isLoading ? (
+        {(isLoading ?? false) ? (
           <div className="text-center text-slate-400 py-12 text-sm">Loading messages...</div>
         ) : (
           <>
-            {chatMessages.map((msg) => {
+            {(chatMessages ?? []).map((msg) => {
               const isOwn = msg.userId === user?.id;
               const senderName = isOwn ? "You" : msg.user?.username || "Unknown";
               const avatarUrl = msg.user?.profilePic || undefined;
@@ -105,7 +107,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
               );
             })}
 
-            {chatMessages.length === 0 && (
+            {(chatMessages?.length ?? 0) === 0 && (
               <div className="text-center text-slate-400 py-12 text-sm">
                 No messages yet. Start the conversation!
               </div>
