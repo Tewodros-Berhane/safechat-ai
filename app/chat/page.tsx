@@ -10,50 +10,53 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#F9FAFB] text-gray-800">
-      
+    <div className="flex flex-col h-screen w-screen bg-[#F5F8FD] text-slate-900">
       <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-      <div className="flex flex-1 min-h-0 overflow-hidden relative">
-
-        {/* === MOBILE SIDEBAR (Slide-In) === */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Mobile sidebar */}
         <aside
-          className={`
-            fixed inset-y-0 left-0 w-72 bg-white shadow-lg z-30 transform transition-transform duration-300
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            sm:hidden overflow-hidden
-          `}
+          className={`fixed inset-y-0 left-0 w-72 bg-white shadow-xl z-30 transform transition-transform duration-300 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } sm:hidden overflow-hidden`}
         >
-          <ChatSidebar onSelectChat={(id) => { setSelectedChat(id); setSidebarOpen(false); }} selectedChat={selectedChat} />
+          <ChatSidebar
+            onSelectChat={(id) => {
+              setSelectedChat(id);
+              setSidebarOpen(false);
+            }}
+            selectedChat={selectedChat}
+          />
         </aside>
 
-        {/* BACKDROP */}
+        {/* Backdrop */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/40 z-20 sm:hidden"
+            className="fixed inset-0 bg-slate-900/40 z-20 sm:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* === DESKTOP SIDEBAR === */}
-        <aside className="hidden sm:block w-[320px] h-full min-h-0 bg-white border-r border-gray-200 shadow-sm overflow-hidden">
+        {/* Desktop sidebar */}
+        <aside className="hidden sm:block w-[320px] h-full bg-white border-r border-slate-200 shadow-sm">
           <ChatSidebar onSelectChat={setSelectedChat} selectedChat={selectedChat} />
         </aside>
 
-        {/* === MAIN CHAT === */}
-        <main className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
-          <div className="flex-1 min-h-0 rounded-2xl bg-white shadow border overflow-hidden">
+        {/* Main chat */}
+        <main className="flex-1 min-h-0 flex flex-col p-4 sm:p-6">
+          <div className="flex-1 min-h-0 rounded-2xl bg-white shadow-md border border-slate-100 overflow-hidden">
             {selectedChat ? (
               <ChatWindow chatId={selectedChat} />
             ) : (
-              <div className="flex items-center justify-center h-full flex-col text-center px-6">
-                <h2 className="text-gray-700 font-semibold text-lg">Select a chat to start messaging 💬</h2>
-                <p className="text-sm text-gray-500 mt-2">Or click <span className="text-[#007AFF] font-medium">+ New</span> to begin.</p>
+              <div className="flex items-center justify-center h-full flex-col text-center px-6 gap-2">
+                <h2 className="text-slate-800 font-semibold text-xl">Pick a chat to start messaging</h2>
+                <p className="text-sm text-slate-500">
+                  Or tap <span className="text-[#04C99B] font-semibold">+ New</span> to begin a conversation.
+                </p>
               </div>
             )}
           </div>
         </main>
-
       </div>
     </div>
   );

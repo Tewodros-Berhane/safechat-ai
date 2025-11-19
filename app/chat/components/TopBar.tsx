@@ -69,44 +69,43 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
   };
 
   return (
-    <header className="w-full h-14 border-b border-gray-200 bg-white shadow flex items-center justify-between px-4 sm:px-6">
-      
+    <header className="w-full h-16 px-4 sm:px-6 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm">
       {/* MOBILE MENU BUTTON */}
       <button
-        className="sm:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+        className="sm:hidden p-2 hover:bg-slate-100 rounded-lg transition"
         onClick={onToggleSidebar}
       >
-        <Menu className="w-6 h-6 text-gray-700" />
+        <Menu className="w-6 h-6 text-slate-700" />
       </button>
 
       {/* BRANDING */}
       <div className="flex items-center gap-2">
-        <div className="bg-[#007AFF] text-white font-semibold rounded-xl w-8 h-8 flex items-center justify-center">
+        <div className="bg-gradient-to-r from-[#007AFF] to-[#04C99B] text-white font-semibold rounded-xl w-9 h-9 flex items-center justify-center shadow-md">
           S
         </div>
-        <span className="text-lg font-semibold hidden sm:block">
-          SafeChat<span className="text-[#007AFF]">.AI</span>
+        <span className="text-lg font-semibold text-slate-900 hidden sm:block">
+          SafeChat<span className="text-[#04C99B]">.AI</span>
         </span>
       </div>
 
       {/* RIGHT SECTION */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="relative hover:bg-gray-50 p-2 rounded-lg transition-all">
-              <Bell className="w-5 h-5 text-gray-600" />
+            <button className="relative hover:bg-slate-100 p-2 rounded-lg transition-all">
+              <Bell className="w-5 h-5 text-slate-700" />
               {unreadCount > 0 && (
-                <Dot className="absolute top-1 right-1 w-4 h-4 text-[#007AFF]" />
+                <Dot className="absolute top-1 right-1 w-4 h-4 text-[#04C99B]" />
               )}
             </button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
             align="end"
-            className="w-72 rounded-xl shadow-lg border border-gray-100 bg-white overflow-hidden"
+            className="w-72 rounded-xl shadow-lg border border-slate-100 bg-white overflow-hidden"
           >
-            <DropdownMenuLabel className="text-gray-500 text-xs font-semibold uppercase px-3 py-2">
+            <DropdownMenuLabel className="text-slate-500 text-xs font-semibold uppercase px-3 py-2">
               Notifications
             </DropdownMenuLabel>
 
@@ -114,16 +113,16 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
               unreadNotifications.map((notif) => (
                 <DropdownMenuItem
                   key={notif.id}
-                  className="flex flex-col items-start gap-1 px-4 py-2 cursor-pointer hover:bg-gray-50"
+                  className="flex flex-col items-start gap-1 px-4 py-2 cursor-pointer hover:bg-slate-50"
                 >
-                  <span className="text-sm text-gray-800">{notif.title || notif.content || "Notification"}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-sm text-slate-800">{notif.title || notif.content || "Notification"}</span>
+                  <span className="text-xs text-slate-500">
                     {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                   </span>
                 </DropdownMenuItem>
               ))
             ) : (
-              <div className="text-center text-gray-400 text-sm py-4">
+              <div className="text-center text-slate-400 text-sm py-4">
                 No new notifications
               </div>
             )}
@@ -142,30 +141,30 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
         {/* === User Dropdown === */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-all">
-              <Avatar className="h-9 w-9 border border-gray-200">
+            <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-all">
+              <Avatar className="h-9 w-9 border border-slate-200">
                 <AvatarImage src={user?.profilePic || undefined} alt={user?.username || "User"} />
-                <AvatarFallback className="bg-[#007AFF]/10 text-[#007AFF] font-semibold">
+                <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
                   {user?.username?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback> 
               </Avatar>
-              <span className="text-sm font-medium text-gray-700">{user?.username || "User"}</span>
+              <span className="text-sm font-semibold text-slate-800">{user?.username || "User"}</span>
             </div>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
             align="end"
-            className="w-48 rounded-xl shadow-lg border border-gray-100 bg-white"
+            className="w-48 rounded-xl shadow-lg border border-slate-100 bg-white"
           >
-            <DropdownMenuLabel className="text-gray-500 text-xs font-semibold uppercase">
+            <DropdownMenuLabel className="text-slate-500 text-xs font-semibold uppercase">
               Account
             </DropdownMenuLabel>
 
             <DropdownMenuItem
               onClick={() => router.push("/profile")}
-              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+              className="flex items-center gap-2 cursor-pointer hover:bg-slate-50"
             >
-              <User className="w-4 h-4 text-gray-500" />
+              <User className="w-4 h-4 text-slate-500" />
               <span>Profile</span>
             </DropdownMenuItem>
 

@@ -1,19 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #3B82F6;
+  --color-primary: #007aff;
+  --color-primary-end: #04c99b;
 }
 
 /* === Base layout === */
 html,
 body {
-  @apply bg-[#F9FAFB] text-gray-800 font-sans min-h-screen antialiased;
+  @apply min-h-screen font-sans antialiased text-slate-900;
+  background: radial-gradient(circle at 15% 20%, rgba(0, 122, 255, 0.08), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(4, 201, 155, 0.08), transparent 35%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 40%, #ecf4ff 100%);
 }
 
 /* === Links === */
 a {
   color: var(--color-primary);
-  @apply hover:text-blue-500 transition-colors;
+  @apply hover:text-[#0063cc] transition-colors font-medium;
 }
 
 /* === Inputs & Buttons === */
@@ -21,13 +25,13 @@ input,
 button,
 textarea,
 select {
-  @apply focus:outline-none focus:ring-2;
-  --tw-ring-color: rgba(59, 130, 246, 0.4);
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-0;
+  --tw-ring-color: rgba(0, 122, 255, 0.38);
 }
 
 /* === Card Defaults (used by shadcn/ui) === */
 .card {
-  @apply bg-white border border-gray-200 rounded-xl shadow-md;
+  @apply bg-white border border-slate-200 rounded-xl shadow-md;
 }
 
 /* === Headings === */
@@ -35,12 +39,12 @@ h1,
 h2,
 h3,
 h4 {
-  @apply text-gray-900 font-semibold;
+  @apply text-slate-900 font-semibold;
 }
 
 /* === Brand Selection === */
 ::selection {
-  background-color: #3B82F6;
+  background: linear-gradient(120deg, var(--color-primary), var(--color-primary-end));
   color: white;
 }
 

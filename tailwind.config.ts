@@ -15,9 +15,15 @@ const config: Config = {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
       },
       colors: {
-        primary: "#3B82F6", 
-        accent: "#1E293B",    
-        background: "#0F172A" 
+        primary: "#007AFF",
+        "primary-foreground": "#ffffff",
+        brand: {
+          blue: "#007AFF",
+          teal: "#04C99B",
+          navy: "#0F172A",
+        },
+        accent: "#E6F0FF",
+        background: "#F8FBFF",
       },
     },
   },
