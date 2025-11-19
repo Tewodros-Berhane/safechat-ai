@@ -8,6 +8,8 @@ export interface User {
   email: string;
   age: number | null;
   isPrivate: boolean;
+  isOnline?: boolean;
+  lastSeen?: string;
   role: UserRole;
   profilePic: string | null;
   createdAt: string;

@@ -7,6 +7,7 @@ import { useChatsStore } from "@/stores/useChatsStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getPresenceInfo } from "@/lib/presence";
 
 interface ChatWindowProps {
   chatId: number;
@@ -20,6 +21,11 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
   const chat = getChatById(chatId);
   const otherUser = user && chat ? getOtherUser(chat, user.id) : null;
   const displayName = otherUser?.username || "Unknown User";
+  const presence = getPresenceInfo({
+    isPrivate: otherUser?.isPrivate,
+    isOnline: otherUser?.isOnline,
+    lastSeen: otherUser?.lastSeen,
+  });
   const chatMessages = messages[chatId] || [];
   const isLoading = messagesLoading[chatId] || false;
 
@@ -47,15 +53,20 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white">
         <div className="flex items-center gap-3">
-          <Avatar className="h-11 w-11">
-            <AvatarImage src={otherUser?.profilePic || undefined} alt={displayName} />
-            <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-11 w-11">
+              <AvatarImage src={otherUser?.profilePic || undefined} alt={displayName} />
+              <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {!otherUser?.isPrivate && otherUser?.isOnline && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+            )}
+          </div>
           <div>
             <h2 className="font-semibold text-slate-900 text-lg">{displayName}</h2>
-            <p className="text-sm text-slate-500">Active now</p>
+            <p className="text-sm text-slate-500">{presence.text}</p>
           </div>
         </div>
       </div>

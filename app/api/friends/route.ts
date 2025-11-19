@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { createRealtimeNotification } from "@/lib/notifications";
 import { FriendRequestStatus } from "@prisma/client";
 
 const userSelect = {
@@ -11,7 +12,27 @@ const userSelect = {
   username: true,
   profilePic: true,
   isPrivate: true,
+  isOnline: true,
+  lastSeen: true,
 };
+
+type FriendUserPayload = Record<string, unknown> & {
+  lastSeen: Date | null;
+};
+
+type SerializedFriendUser = Record<string, unknown> & {
+  lastSeen: string | null;
+};
+
+const serializeFriendUser = (
+  user?: FriendUserPayload | null
+): SerializedFriendUser | undefined =>
+  user
+    ? ({
+        ...user,
+        lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
+      } as SerializedFriendUser)
+    : undefined;
 
 async function getSessionFromRequest() {
   try {
@@ -81,18 +102,20 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const friends = friendships.map((friendship) => {
-      const isUserA = friendship.userAId === user.id;
-      const otherUser = isUserA ? friendship.userB : friendship.userA;
-      return {
-        id: otherUser.id,
-        username: otherUser.username,
-        profilePic: otherUser.profilePic,
-        isPrivate: otherUser.isPrivate,
-        friendSince: friendship.createdAt.toISOString(),
-        friendshipId: friendship.id,
-      };
-    });
+  const friends = friendships.map((friendship) => {
+    const isUserA = friendship.userAId === user.id;
+    const otherUser = isUserA ? friendship.userB : friendship.userA;
+    return {
+      id: otherUser.id,
+      username: otherUser.username,
+      profilePic: otherUser.profilePic,
+      isPrivate: otherUser.isPrivate,
+      isOnline: otherUser.isOnline,
+      lastSeen: otherUser.lastSeen ? otherUser.lastSeen.toISOString() : null,
+      friendSince: friendship.createdAt.toISOString(),
+      friendshipId: friendship.id,
+    };
+  });
 
     const incomingRequests = await prisma.friendRequest.findMany({
       where: {
@@ -123,13 +146,13 @@ export async function GET() {
           id: req.id,
           status: req.status,
           createdAt: req.createdAt.toISOString(),
-          requester: req.requester,
+          requester: serializeFriendUser(req.requester),
         })),
         outgoing: outgoingRequests.map((req) => ({
           id: req.id,
           status: req.status,
           createdAt: req.createdAt.toISOString(),
-          receiver: req.receiver,
+          receiver: serializeFriendUser(req.receiver),
         })),
       },
     });
@@ -229,13 +252,11 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      await prisma.notification.create({
-        data: {
-          userId: targetUserId,
-          type: "FRIEND_REQUEST",
-          title: "New friend request",
-          content: `${user.username} sent you a friend request`,
-        },
+      await createRealtimeNotification({
+        userId: targetUserId,
+        type: "FRIEND_REQUEST",
+        title: "New friend request",
+        content: `${user.username} sent you a friend request`,
       });
 
       return NextResponse.json({ request: updatedRequest }, { status: 201 });
@@ -252,13 +273,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await prisma.notification.create({
-      data: {
-        userId: targetUserId,
-        type: "FRIEND_REQUEST",
-        title: "New friend request",
-        content: `${user.username} sent you a friend request`,
-      },
+    await createRealtimeNotification({
+      userId: targetUserId,
+      type: "FRIEND_REQUEST",
+      title: "New friend request",
+      content: `${user.username} sent you a friend request`,
     });
 
     return NextResponse.json({ request: friendRequest }, { status: 201 });
@@ -340,13 +359,11 @@ export async function PATCH(request: NextRequest) {
         },
       });
 
-      await prisma.notification.create({
-        data: {
-          userId: friendRequest.requesterId,
-          type: "FRIEND_ACTIVITY",
-          title: "Friend request accepted",
-          content: `${user.username} accepted your friend request`,
-        },
+      await createRealtimeNotification({
+        userId: friendRequest.requesterId,
+        type: "FRIEND_ACTIVITY",
+        title: "Friend request accepted",
+        content: `${user.username} accepted your friend request`,
       });
 
       return NextResponse.json({
@@ -365,13 +382,11 @@ export async function PATCH(request: NextRequest) {
       data: { status: FriendRequestStatus.REJECTED },
     });
 
-    await prisma.notification.create({
-      data: {
-        userId: friendRequest.requesterId,
-        type: "FRIEND_ACTIVITY",
-        title: "Friend request declined",
-        content: `${user.username} declined your friend request`,
-      },
+    await createRealtimeNotification({
+      userId: friendRequest.requesterId,
+      type: "FRIEND_ACTIVITY",
+      title: "Friend request declined",
+      content: `${user.username} declined your friend request`,
     });
 
     return NextResponse.json({ status: "rejected" });
@@ -419,13 +434,11 @@ export async function DELETE(request: NextRequest) {
 
     await prisma.friendship.delete({ where: { id: friendship.id } });
 
-    await prisma.notification.create({
-      data: {
-        userId: friendUserId,
-        type: "FRIEND_ACTIVITY",
-        title: "Friend removed",
-        content: `${user.username} removed you from their friends list`,
-      },
+    await createRealtimeNotification({
+      userId: friendUserId,
+      type: "FRIEND_ACTIVITY",
+      title: "Friend removed",
+      content: `${user.username} removed you from their friends list`,
     });
 
     return NextResponse.json({ success: true });

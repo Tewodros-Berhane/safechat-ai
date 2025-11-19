@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFriendsStore } from "@/stores/useFriendsStore";
 import { Search, Users, Shield, CheckCheck } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
+import { getPresenceInfo } from "@/lib/presence";
 
 type Relationship = "FRIEND" | "OUTGOING_REQUEST" | "INCOMING_REQUEST" | "NONE";
 
@@ -29,6 +30,8 @@ interface SearchResult {
   profilePic: string | null;
   isPrivate: boolean;
   relationship: Relationship;
+  isOnline?: boolean;
+  lastSeen?: string;
 }
 
 interface ChatSidebarProps {
@@ -306,6 +309,11 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                 !!lastMessage &&
                 isLastMessageFromUser &&
                 !!lastMessage.readReceipts?.some((receipt) => receipt.userId === otherUserId);
+              const presence = getPresenceInfo({
+                isPrivate: otherUser?.isPrivate,
+                isOnline: otherUser?.isOnline,
+                lastSeen: otherUser?.lastSeen,
+              });
 
               return (
                 <div
@@ -319,12 +327,17 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-11 w-11">
-                      <AvatarImage src={otherUser?.profilePic || undefined} alt={displayName} />
-                      <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
-                        {displayName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-11 w-11">
+                        <AvatarImage src={otherUser?.profilePic || undefined} alt={displayName} />
+                        <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
+                          {displayName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {!otherUser?.isPrivate && otherUser?.isOnline && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-slate-900 truncate">{displayName}</p>
@@ -343,6 +356,7 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                         )}
                         <span className="truncate">{lastMessageText}</span>
                       </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{presence.text}</div>
                     </div>
                     {unreadCount > 0 && (
                       <div className="bg-[#007AFF] text-white text-xs font-semibold rounded-full min-w-[24px] h-6 flex items-center justify-center">

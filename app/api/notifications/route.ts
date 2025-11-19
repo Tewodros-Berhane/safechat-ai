@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { notificationInclude } from "@/lib/notifications";
 
 // Helper function to get session from token
 async function getSessionFromRequest() {
@@ -73,19 +74,7 @@ export async function GET(request: Request) {
     // Fetch all notifications for the user, ordered by newest first
     const notifications = await prisma.notification.findMany({
       where: { userId: user.id },
-      include: {
-        chat: {
-          include: {
-            user1: { select: { id: true, username: true, profilePic: true } },
-            user2: { select: { id: true, username: true, profilePic: true } },
-          },
-        },
-        message: {
-          include: {
-            user: { select: { id: true, username: true, profilePic: true } },
-          },
-        },
-      },
+      include: notificationInclude,
       orderBy: { createdAt: "desc" },
     });
 

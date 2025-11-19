@@ -4,12 +4,33 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { emitToUser } from "@/lib/socket";
+import { createRealtimeNotification } from "@/lib/notifications";
 
 const chatUserSelect = {
   id: true,
   username: true,
   profilePic: true,
+  isPrivate: true,
+  isOnline: true,
+  lastSeen: true,
 };
+
+type RawChatUser = Record<string, unknown> & {
+  lastSeen: Date | null;
+};
+
+type SerializedChatUser = Record<string, unknown> & {
+  lastSeen: string | null;
+};
+
+const serializeUser = (user?: RawChatUser | null): SerializedChatUser | undefined =>
+  user
+    ? ({
+        ...user,
+        lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
+      } as SerializedChatUser)
+    : undefined;
 
 const chatInclude = {
   user1: { select: chatUserSelect },
@@ -96,8 +117,8 @@ function transformChat(
     title: chat.title,
     createdAt: chat.createdAt.toISOString(),
     updatedAt: chat.updatedAt.toISOString(),
-    user1: chat.user1,
-    user2: chat.user2,
+    user1: serializeUser(chat.user1),
+    user2: serializeUser(chat.user2),
     lastMessage: lastMessage
       ? {
           id: lastMessage.id,
@@ -109,7 +130,7 @@ function transformChat(
           emotion: lastMessage.emotion,
           isFlagged: lastMessage.isFlagged,
           createdAt: lastMessage.createdAt.toISOString(),
-          user: lastMessage.user,
+          user: serializeUser(lastMessage.user),
           readReceipts: lastMessage.readReceipts.map((receipt) => ({
             userId: receipt.userId,
             readAt: receipt.readAt.toISOString(),
@@ -259,15 +280,18 @@ export async function POST(request: Request) {
       include: chatInclude,
     });
 
-    await prisma.notification.create({
-      data: {
-        userId: targetUserId,
-        type: "CHAT",
-        title: "New chat started",
-        content: `${user.username} started a chat with you`,
-        chatId: newChat.id,
-      },
+    await createRealtimeNotification({
+      userId: targetUserId,
+      type: "CHAT",
+      title: "New chat started",
+      content: `${user.username} started a chat with you`,
+      chatId: newChat.id,
     });
+
+    const chatPayload = transformChat(newChat, 0);
+    if (chatPayload) {
+      emitToUser(targetUserId, "chat:new", { chat: chatPayload });
+    }
 
     return NextResponse.json(
       { chat: transformChat(newChat, 0) },

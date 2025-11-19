@@ -4,6 +4,36 @@ import { authOptions } from "../../../auth/[...nextauth]/route";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
+import { emitToUser } from "@/lib/socket";
+
+const participantSelect = {
+  select: {
+    id: true,
+    username: true,
+    profilePic: true,
+    isPrivate: true,
+    isOnline: true,
+    lastSeen: true,
+  },
+};
+
+type ParticipantPayload = Record<string, unknown> & {
+  lastSeen: Date | null;
+};
+
+type SerializedParticipant = Record<string, unknown> & {
+  lastSeen: string | null;
+};
+
+const serializeUser = (
+  user?: ParticipantPayload | null
+): SerializedParticipant | undefined =>
+  user
+    ? ({
+        ...user,
+        lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
+      } as SerializedParticipant)
+    : undefined;
 
 // Helper function to get session from token
 async function getSessionFromRequest() {
@@ -75,6 +105,10 @@ export async function GET(
         id: chatId,
         OR: [{ user1Id: user.id }, { user2Id: user.id }],
       },
+      include: {
+        user1: participantSelect,
+        user2: participantSelect,
+      },
     });
 
     if (!chat) {
@@ -93,6 +127,9 @@ export async function GET(
             id: true,
             username: true,
             profilePic: true,
+            isPrivate: true,
+            isOnline: true,
+            lastSeen: true,
           },
         },
         readReceipts: {
@@ -134,6 +171,22 @@ export async function GET(
           });
         }
       });
+
+      const otherUserId = chat
+        ? chat.user1Id === user.id
+          ? chat.user2Id
+          : chat.user1Id
+        : undefined;
+      if (otherUserId) {
+        emitToUser(otherUserId, "message:read", {
+          chatId,
+          receipts: receiptData.map((receipt) => ({
+            messageId: receipt.messageId,
+            userId: receipt.userId,
+            readAt: receipt.readAt.toISOString(),
+          })),
+        });
+      }
     }
 
     // Transform messages to include user data
@@ -147,7 +200,7 @@ export async function GET(
       emotion: msg.emotion,
       isFlagged: msg.isFlagged,
       createdAt: msg.createdAt.toISOString(),
-      user: msg.user,
+      user: serializeUser(msg.user),
       readReceipts: msg.readReceipts.map((receipt) => ({
         userId: receipt.userId,
         readAt: receipt.readAt.toISOString(),
@@ -200,6 +253,10 @@ export async function POST(
         id: chatId,
         OR: [{ user1Id: user.id }, { user2Id: user.id }],
       },
+      include: {
+        user1: participantSelect,
+        user2: participantSelect,
+      },
     });
 
     if (!chat) {
@@ -232,6 +289,9 @@ export async function POST(
             id: true,
             username: true,
             profilePic: true,
+            isPrivate: true,
+            isOnline: true,
+            lastSeen: true,
           },
         },
         readReceipts: {
@@ -260,12 +320,36 @@ export async function POST(
       emotion: message.emotion,
       isFlagged: message.isFlagged,
       createdAt: message.createdAt.toISOString(),
-      user: message.user,
+      user: serializeUser(message.user),
       readReceipts: message.readReceipts.map((receipt) => ({
         userId: receipt.userId,
         readAt: receipt.readAt.toISOString(),
       })),
     };
+
+    if (chat) {
+      const recipientId = chat.user1Id === user.id ? chat.user2Id : chat.user1Id;
+      const chatPreview = {
+        id: chat.id,
+        user1Id: chat.user1Id,
+        user2Id: chat.user2Id,
+        type: chat.type,
+        title: chat.title,
+        createdAt: chat.createdAt.toISOString(),
+        updatedAt: transformedMessage.createdAt,
+        user1: serializeUser(chat.user1),
+        user2: serializeUser(chat.user2),
+        lastMessage: transformedMessage,
+      };
+
+      if (recipientId) {
+        emitToUser(recipientId, "message:new", {
+          chatId,
+          message: transformedMessage,
+          chatPreview,
+        });
+      }
+    }
 
     return NextResponse.json({ message: transformedMessage }, { status: 201 });
   } catch (error) {

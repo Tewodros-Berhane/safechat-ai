@@ -20,8 +20,22 @@ export interface Notification {
   messageId: number | null;
   chat?: {
     id: number;
-    user1?: { id: number; username: string; profilePic: string | null };
-    user2?: { id: number; username: string; profilePic: string | null };
+    user1?: {
+      id: number;
+      username: string;
+      profilePic: string | null;
+      isPrivate: boolean;
+      isOnline?: boolean;
+      lastSeen?: string;
+    };
+    user2?: {
+      id: number;
+      username: string;
+      profilePic: string | null;
+      isPrivate: boolean;
+      isOnline?: boolean;
+      lastSeen?: string;
+    };
   };
   message?: {
     id: number;

@@ -12,6 +12,8 @@ const userSelect = {
   email: true,
   profilePic: true,
   isPrivate: true,
+  isOnline: true,
+  lastSeen: true,
 };
 
 async function getSessionFromRequest() {

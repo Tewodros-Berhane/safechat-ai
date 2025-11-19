@@ -226,6 +226,8 @@ export default function ProfilePage() {
                   name={user.username}
                   username={user.username}
                   isPrivate={user.isPrivate}
+                  isOnline={user.isOnline}
+                  lastSeen={user.lastSeen}
                   role={user.role}
                   dateJoined={new Date(user.createdAt)}
                   chatCount={user.chatCount || 0}

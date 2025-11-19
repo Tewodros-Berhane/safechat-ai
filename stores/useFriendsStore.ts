@@ -5,6 +5,8 @@ export interface FriendUser {
   username: string;
   profilePic: string | null;
   isPrivate: boolean;
+  isOnline?: boolean;
+  lastSeen?: string | null;
 }
 
 export interface FriendEntry extends FriendUser {
@@ -45,6 +47,7 @@ interface FriendsState {
   sendFriendRequest: (userId: number) => Promise<boolean>;
   respondToRequest: (requestId: number, action: "ACCEPT" | "REJECT") => Promise<boolean>;
   removeFriend: (userId: number) => Promise<boolean>;
+  updatePresence: (userId: number, presence: Partial<{ isOnline?: boolean; lastSeen?: string }>) => void;
   reset: () => void;
 }
 
@@ -220,6 +223,19 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
       return false;
     }
   },
+
+  updatePresence: (userId, presence) =>
+    set((state) => ({
+      friends: state.friends.map((friend) =>
+        friend.id === userId ? { ...friend, ...presence } : friend
+      ),
+      incomingRequests: state.incomingRequests.map((req) =>
+        req.user.id === userId ? { ...req, user: { ...req.user, ...presence } } : req
+      ),
+      outgoingRequests: state.outgoingRequests.map((req) =>
+        req.user.id === userId ? { ...req, user: { ...req.user, ...presence } } : req
+      ),
+    })),
 
   reset: () =>
     set({

@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, User, X } from "lucide-react";
 import { format } from "date-fns";
+import { getPresenceInfo } from "@/lib/presence";
 
 interface ProfileSidebarProps {
   isEditMode: boolean;
@@ -12,6 +13,8 @@ interface ProfileSidebarProps {
   name: string;
   username: string;
   isPrivate?: boolean;
+   isOnline?: boolean;
+   lastSeen?: string | null;
   role: "USER" | "MODERATOR" | "ADMIN";
   dateJoined: Date;
   chatCount?: number;
@@ -27,6 +30,8 @@ export default function ProfileSidebar({
   name,
   username,
   isPrivate = false,
+  isOnline,
+  lastSeen,
   role,
   dateJoined,
   chatCount = 0,
@@ -37,6 +42,7 @@ export default function ProfileSidebar({
 }: ProfileSidebarProps) {
   const [isHovering, setIsHovering] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presence = getPresenceInfo({ isPrivate, isOnline, lastSeen });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,6 +158,10 @@ export default function ProfileSidebar({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Visibility</span>
             <span className="font-medium text-gray-900">{isPrivate ? "Private" : "Public"}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Status</span>
+            <span className="font-medium text-gray-900 text-right">{presence.text}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Joined</span>

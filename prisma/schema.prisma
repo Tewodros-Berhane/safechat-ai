@@ -20,6 +20,8 @@ model User {
   passwordHash           String
   age                    Int?
   isPrivate              Boolean              @default(false)
+  isOnline               Boolean              @default(false)
+  lastSeen               DateTime             @default(now())
   role                   Role                 @default(USER)
   profilePic             String?
   chats1                 Chat[]               @relation("ChatUser1")

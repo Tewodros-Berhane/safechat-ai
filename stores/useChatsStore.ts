@@ -14,6 +14,9 @@ export interface Message {
     id: number;
     username: string;
     profilePic: string | null;
+    isPrivate: boolean;
+    isOnline?: boolean;
+    lastSeen?: string | null;
   };
   readReceipts?: {
     userId: number;
@@ -33,11 +36,17 @@ export interface Chat {
     id: number;
     username: string;
     profilePic: string | null;
+    isPrivate: boolean;
+    isOnline?: boolean;
+    lastSeen?: string | null;
   };
   user2?: {
     id: number;
     username: string;
     profilePic: string | null;
+    isPrivate: boolean;
+    isOnline?: boolean;
+    lastSeen?: string | null;
   };
   lastMessage?: Message;
   unreadCount?: number;
@@ -73,6 +82,7 @@ interface ChatsState {
   updateChat: (chatId: number, updates: Partial<Chat>) => void;
   removeChat: (chatId: number) => void;
   setSelectedChat: (chatId: number | null) => void;
+  updateUserPresence: (userId: number, presence: Partial<{ isOnline?: boolean; lastSeen?: string }>) => void;
   
   // Messages
   setMessages: (chatId: number, messages: Message[]) => void;
@@ -103,23 +113,67 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   setChats: (chats) => set({ chats: chats.map(normalizeChat), error: null }),
 
   addChat: (chat) =>
-    set((state) => ({
-      chats: [...state.chats, normalizeChat(chat)],
-    })),
+    set((state) => {
+      const normalized = normalizeChat(chat);
+      const remaining = state.chats.filter((existing) => existing.id !== normalized.id);
+      return {
+        chats: [normalized, ...remaining],
+      };
+    }),
 
   updateChat: (chatId, updates) =>
+    set((state) => {
+      const normalizedUpdates: Partial<Chat> = { ...updates };
+      if (updates.lastMessage) {
+        normalizedUpdates.lastMessage = normalizeMessage(updates.lastMessage);
+      }
+
+      let updatedChat: Chat | null = null;
+      const remainingChats: Chat[] = [];
+      let originalIndex = -1;
+
+      state.chats.forEach((chat, index) => {
+        if (chat.id === chatId) {
+          updatedChat = { ...chat, ...normalizedUpdates } as Chat;
+          originalIndex = index;
+        } else {
+          remainingChats.push(chat);
+        }
+      });
+
+      if (!updatedChat) {
+        return { chats: state.chats };
+      }
+
+      if (normalizedUpdates.updatedAt) {
+        return {
+          chats: [updatedChat, ...remainingChats],
+        };
+      }
+
+      const reordered = [...remainingChats];
+      const insertIndex =
+        originalIndex >= 0 ? Math.min(originalIndex, reordered.length) : reordered.length;
+      reordered.splice(insertIndex, 0, updatedChat);
+      return {
+        chats: reordered,
+      };
+    }),
+
+  updateUserPresence: (userId, presence) =>
     set((state) => ({
-      chats: state.chats.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
-              ...updates,
-              ...(updates.lastMessage && {
-                lastMessage: normalizeMessage(updates.lastMessage),
-              }),
-            }
-          : chat
-      ),
+      chats: state.chats.map((chat) => {
+        let updated = false;
+        const user1 =
+          chat.user1 && chat.user1.id === userId
+            ? ((updated = true), { ...chat.user1, ...presence })
+            : chat.user1;
+        const user2 =
+          chat.user2 && chat.user2.id === userId
+            ? ((updated = true), { ...chat.user2, ...presence })
+            : chat.user2;
+        return updated ? { ...chat, user1, user2 } : chat;
+      }),
     })),
 
   removeChat: (chatId) =>

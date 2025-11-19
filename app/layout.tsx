@@ -2,6 +2,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import RealtimeProvider from "@/components/providers/RealtimeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} bg-[#F9FAFB] text-gray-800 flex items-center justify-center min-h-screen`}
       >
+        <RealtimeProvider />
         {children}
         <Toaster richColors closeButton position="top-right" />
       </body>
