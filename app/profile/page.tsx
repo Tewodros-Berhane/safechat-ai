@@ -10,6 +10,7 @@ import ProfileForm from "./components/ProfileForm";
 import SecuritySettings from "./components/SecuritySettings";
 import DangerZone from "./components/DangerZone";
 import { useUserStore } from "@/stores/useUserStore";
+import FriendsPanel from "./components/FriendsPanel";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -224,6 +225,7 @@ export default function ProfilePage() {
                   profilePic={photoPreview || user.profilePic}
                   name={user.username}
                   username={user.username}
+                  isPrivate={user.isPrivate}
                   role={user.role}
                   dateJoined={new Date(user.createdAt)}
                   chatCount={user.chatCount || 0}
@@ -248,6 +250,7 @@ export default function ProfilePage() {
                 />
 
                 <SecuritySettings/>
+                <FriendsPanel />
                 <DangerZone />
               </div>
             </>

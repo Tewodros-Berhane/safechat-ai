@@ -64,6 +64,7 @@ export async function GET() {
         username: true,
         email: true,
         age: true,
+        isPrivate: true,
         role: true,
         profilePic: true,
         createdAt: true,
@@ -131,6 +132,7 @@ export async function PATCH(request: NextRequest) {
 
     let username: string | undefined;
     let age: number | undefined;
+    let isPrivate: boolean | undefined;
     let profilePicPath: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
@@ -138,11 +140,16 @@ export async function PATCH(request: NextRequest) {
       const usernameValue = formData.get("username");
       const ageValue = formData.get("age");
       const profilePic = formData.get("profilePic");
+      const isPrivateValue = formData.get("isPrivate");
 
       username = typeof usernameValue === "string" && usernameValue.trim() ? usernameValue : undefined;
       age = typeof ageValue === "string" && ageValue.trim() ? Number(ageValue) : undefined;
       if (age !== undefined && Number.isNaN(age)) {
         age = undefined;
+      }
+
+      if (typeof isPrivateValue === "string" && isPrivateValue.length > 0) {
+        isPrivate = ["true", "1", "on"].includes(isPrivateValue.toLowerCase());
       }
 
       if (profilePic instanceof File) {
@@ -163,6 +170,9 @@ export async function PATCH(request: NextRequest) {
       const body = await request.json();
       username = body.username;
       age = typeof body.age === "number" ? body.age : undefined;
+      if (typeof body.isPrivate === "boolean") {
+        isPrivate = body.isPrivate;
+      }
 
       // Accept direct path updates for future flexibility, but avoid storing base64 blobs.
       if (body.profilePic && typeof body.profilePic === "string" && body.profilePic.startsWith("/")) {
@@ -177,12 +187,14 @@ export async function PATCH(request: NextRequest) {
         ...(username && { username }),
         ...(age !== undefined && { age }),
         ...(profilePicPath !== undefined && { profilePic: profilePicPath }),
+        ...(isPrivate !== undefined && { isPrivate }),
       },
       select: {
         id: true,
         username: true,
         email: true,
         age: true,
+        isPrivate: true,
         role: true,
         profilePic: true,
         createdAt: true,

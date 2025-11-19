@@ -14,24 +14,30 @@ enum Role {
 }
 
 model User {
-  id             Int                  @id @default(autoincrement())
-  username       String               @unique
-  email          String               @unique
-  passwordHash   String
-  age            Int?
-  role           Role                 @default(USER)
-  profilePic     String?
-  chats1         Chat[]               @relation("ChatUser1")
-  chats2         Chat[]               @relation("ChatUser2")
-  messages       Message[]
-  flaggedMsgs    FlaggedMessage[]     @relation("FlaggedByUser")
-  moderatedFlags FlaggedMessage[]     @relation("FlaggedByModerator")
-  moderationLogs ModerationLog[]      @relation("ModeratorLogs")
-  auditLogs      AuditLog[]
-  notifications  Notification[]
-  resetTokens    PasswordResetToken[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                     Int                  @id @default(autoincrement())
+  username               String               @unique
+  email                  String               @unique
+  passwordHash           String
+  age                    Int?
+  isPrivate              Boolean              @default(false)
+  role                   Role                 @default(USER)
+  profilePic             String?
+  chats1                 Chat[]               @relation("ChatUser1")
+  chats2                 Chat[]               @relation("ChatUser2")
+  messages               Message[]
+  flaggedMsgs            FlaggedMessage[]     @relation("FlaggedByUser")
+  moderatedFlags         FlaggedMessage[]     @relation("FlaggedByModerator")
+  moderationLogs         ModerationLog[]      @relation("ModeratorLogs")
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  resetTokens            PasswordResetToken[]
+  friendshipsInitiated   Friendship[]         @relation("FriendshipUserA")
+  friendshipsReceived    Friendship[]         @relation("FriendshipUserB")
+  friendRequestsSent     FriendRequest[]      @relation("FriendRequestsSent")
+  friendRequestsReceived FriendRequest[]      @relation("FriendRequestsReceived")
+  messageReadReceipts    MessageReadReceipt[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 }
 
 model PasswordResetToken {
@@ -71,6 +77,7 @@ model Message {
   flaggedMessage   FlaggedMessage?
   moderationLogs   ModerationLog[]
   notifications    Notification[]
+  readReceipts     MessageReadReceipt[]
   createdAt        DateTime        @default(now())
 }
 
@@ -113,6 +120,8 @@ enum NotificationType {
   FLAGGED // flagged message alert
   MODERATION // moderation action result
   SYSTEM // password reset, login alert, etc.
+  FRIEND_REQUEST
+  FRIEND_ACTIVITY
 }
 
 model Notification {
@@ -133,4 +142,46 @@ model Notification {
 
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+model FriendRequest {
+  id          Int                 @id @default(autoincrement())
+  requester   User                @relation("FriendRequestsSent", fields: [requesterId], references: [id])
+  requesterId Int
+  receiver    User                @relation("FriendRequestsReceived", fields: [receiverId], references: [id])
+  receiverId  Int
+  status      FriendRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([requesterId, receiverId])
+}
+
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  userA     User     @relation("FriendshipUserA", fields: [userAId], references: [id])
+  userAId   Int
+  userB     User     @relation("FriendshipUserB", fields: [userBId], references: [id])
+  userBId   Int
+  createdAt DateTime @default(now())
+
+  @@unique([userAId, userBId])
+}
+
+model MessageReadReceipt {
+  id        Int      @id @default(autoincrement())
+  message   Message  @relation(fields: [messageId], references: [id])
+  messageId Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
 }

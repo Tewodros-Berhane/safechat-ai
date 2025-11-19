@@ -1,6 +1,13 @@
 import { create } from "zustand";
 
-export type NotificationType = "MESSAGE" | "CHAT" | "FLAGGED" | "MODERATION" | "SYSTEM";
+export type NotificationType =
+  | "MESSAGE"
+  | "CHAT"
+  | "FLAGGED"
+  | "MODERATION"
+  | "SYSTEM"
+  | "FRIEND_REQUEST"
+  | "FRIEND_ACTIVITY";
 
 export interface Notification {
   id: number;

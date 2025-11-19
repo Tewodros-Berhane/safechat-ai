@@ -15,6 +15,10 @@ export interface Message {
     username: string;
     profilePic: string | null;
   };
+  readReceipts?: {
+    userId: number;
+    readAt: string;
+  }[];
 }
 
 export interface Chat {
@@ -38,6 +42,22 @@ export interface Chat {
   lastMessage?: Message;
   unreadCount?: number;
 }
+
+const normalizeMessage = (message: Message | undefined): Message | undefined => {
+  if (!message) {
+    return undefined;
+  }
+
+  return {
+    ...message,
+    readReceipts: message.readReceipts || [],
+  };
+};
+
+const normalizeChat = (chat: Chat): Chat => ({
+  ...chat,
+  lastMessage: normalizeMessage(chat.lastMessage),
+});
 
 interface ChatsState {
   chats: Chat[];
@@ -64,6 +84,7 @@ interface ChatsState {
   fetchChats: () => Promise<void>;
   fetchMessages: (chatId: number) => Promise<void>;
   sendMessage: (chatId: number, messageText: string) => Promise<Message | null>;
+  createChat: (targetUserId: number) => Promise<Chat | null>;
   
   // Utilities
   getChatById: (chatId: number) => Chat | undefined;
@@ -79,17 +100,25 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   messagesLoading: {},
   error: null,
 
-  setChats: (chats) => set({ chats, error: null }),
+  setChats: (chats) => set({ chats: chats.map(normalizeChat), error: null }),
 
   addChat: (chat) =>
     set((state) => ({
-      chats: [...state.chats, chat],
+      chats: [...state.chats, normalizeChat(chat)],
     })),
 
   updateChat: (chatId, updates) =>
     set((state) => ({
       chats: state.chats.map((chat) =>
-        chat.id === chatId ? { ...chat, ...updates } : chat
+        chat.id === chatId
+          ? {
+              ...chat,
+              ...updates,
+              ...(updates.lastMessage && {
+                lastMessage: normalizeMessage(updates.lastMessage),
+              }),
+            }
+          : chat
       ),
     })),
 
@@ -105,23 +134,39 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
 
   setMessages: (chatId, messages) =>
     set((state) => ({
-      messages: { ...state.messages, [chatId]: messages },
+      messages: {
+        ...state.messages,
+        [chatId]: messages.map((msg) => ({
+          ...msg,
+          readReceipts: msg.readReceipts || [],
+        })),
+      },
       messagesLoading: { ...state.messagesLoading, [chatId]: false },
     })),
 
   addMessage: (chatId, message) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [chatId]: [...(state.messages[chatId] || []), message],
-      },
-      // Update chat's last message
-      chats: state.chats.map((chat) =>
-        chat.id === chatId
-          ? { ...chat, lastMessage: message, updatedAt: message.createdAt }
-          : chat
-      ),
-    })),
+    set((state) => {
+      const normalizedMessage = {
+        ...message,
+        readReceipts: message.readReceipts || [],
+      };
+      return {
+        messages: {
+          ...state.messages,
+          [chatId]: [...(state.messages[chatId] || []), normalizedMessage],
+        },
+        // Update chat's last message
+        chats: state.chats.map((chat) =>
+          chat.id === chatId
+            ? {
+                ...chat,
+                lastMessage: normalizedMessage,
+                updatedAt: normalizedMessage.createdAt,
+              }
+            : chat
+        ),
+      };
+    }),
 
   updateMessage: (chatId, messageId, updates) =>
     set((state) => ({
@@ -152,7 +197,11 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         throw new Error("Failed to fetch chats");
       }
       const data = await response.json();
-      set({ chats: data.chats, loading: false, error: null });
+      set({
+        chats: (data.chats || []).map(normalizeChat),
+        loading: false,
+        error: null,
+      });
     } catch (error) {
       console.error("Error fetching chats:", error);
       set({
@@ -173,6 +222,7 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       }
       const data = await response.json();
       get().setMessages(chatId, data.messages);
+      get().updateChat(chatId, { unreadCount: 0 });
     } catch (error) {
       console.error("Error fetching messages:", error);
       set((state) => ({
@@ -204,6 +254,38 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
         error: error instanceof Error ? error.message : "Failed to send message",
       });
       return null;
+    }
+  },
+
+  createChat: async (targetUserId) => {
+    try {
+      const response = await fetch("/api/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to start chat");
+      }
+
+      const data = await response.json();
+      const chat = data.chat as Chat | undefined;
+      if (chat) {
+        set((state) => {
+          const filtered = state.chats.filter((item) => item.id !== chat.id);
+          return { chats: [normalizeChat(chat), ...filtered] };
+        });
+      }
+
+      return chat || null;
+    } catch (error) {
+      console.error("Error creating chat:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to create chat";
+      set({ error: message });
+      throw new Error(message);
     }
   },
 

@@ -7,6 +7,7 @@ export interface User {
   username: string;
   email: string;
   age: number | null;
+  isPrivate: boolean;
   role: UserRole;
   profilePic: string | null;
   createdAt: string;

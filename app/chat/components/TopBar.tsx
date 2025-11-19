@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useUserStore } from "@/stores/useUserStore";
 import { useNotificationsStore } from "@/stores/useNotificationsStore";
 import { useChatsStore } from "@/stores/useChatsStore";
+import { useFriendsStore } from "@/stores/useFriendsStore";
 import { formatDistanceToNow } from "date-fns";
 
 export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
@@ -32,6 +33,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
     clearAll: clearNotifications,
   } = useNotificationsStore();
   const { clearAll: clearChats } = useChatsStore();
+  const { reset: resetFriends } = useFriendsStore();
 
   useEffect(() => {
     fetchUser();
@@ -54,6 +56,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
         clearUser();
         clearNotifications();
         clearChats();
+        resetFriends();
         toast.success("Logged out successfully");
         router.push("/auth/login");
       } else {

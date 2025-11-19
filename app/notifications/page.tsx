@@ -15,6 +15,8 @@ import {
   Shield,
   Info,
   Users,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -71,6 +73,10 @@ export default function NotificationsPage() {
         return <Shield className="w-5 h-5" />;
       case "SYSTEM":
         return <Info className="w-5 h-5" />;
+      case "FRIEND_REQUEST":
+        return <UserPlus className="w-5 h-5" />;
+      case "FRIEND_ACTIVITY":
+        return <UserCheck className="w-5 h-5" />;
       default:
         return <Bell className="w-5 h-5" />;
     }
@@ -88,6 +94,10 @@ export default function NotificationsPage() {
         return "text-orange-600 bg-orange-50";
       case "SYSTEM":
         return "text-gray-600 bg-gray-50";
+      case "FRIEND_REQUEST":
+        return "text-emerald-600 bg-emerald-50";
+      case "FRIEND_ACTIVITY":
+        return "text-sky-600 bg-sky-50";
       default:
         return "text-gray-600 bg-gray-50";
     }
@@ -166,7 +176,7 @@ export default function NotificationsPage() {
                   No notifications
                 </h3>
                 <p className="text-gray-500">
-                  You're all caught up! Check back later for updates.
+                  You&apos;re all caught up! Check back later for updates.
                 </p>
               </div>
             </CardContent>

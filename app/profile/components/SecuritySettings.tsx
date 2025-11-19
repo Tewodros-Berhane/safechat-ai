@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Lock, Shield, Smartphone } from "lucide-react";
+import { Lock, Shield } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useUserStore } from "@/stores/useUserStore";
 
 
 export default function SecuritySettings() {
@@ -27,6 +28,8 @@ export default function SecuritySettings() {
     confirmPassword: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [privacyUpdating, setPrivacyUpdating] = useState(false);
+  const { user, updateUser } = useUserStore();
 
   const handlePasswordChange = async () => {
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
@@ -76,6 +79,32 @@ export default function SecuritySettings() {
     }
   };
 
+  const handlePrivacyToggle = async (isPrivate: boolean) => {
+    setPrivacyUpdating(true);
+    try {
+      const response = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPrivate }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update privacy settings");
+      }
+
+      const result = await response.json();
+      updateUser(result.user);
+      toast.success(isPrivate ? "Your profile is now private" : "Your profile is now public");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update privacy settings";
+      toast.error(message);
+    } finally {
+      setPrivacyUpdating(false);
+    }
+  };
+
   return (
     <Card className="bg-white rounded-2xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <CardHeader>
@@ -85,6 +114,25 @@ export default function SecuritySettings() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Privacy Toggle */}
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-gray-400" />
+            <div>
+              <Label className="text-sm font-medium text-gray-900">Account privacy</Label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Private accounts require friend approval before anyone can start a chat.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={Boolean(user?.isPrivate)}
+            onCheckedChange={handlePrivacyToggle}
+            disabled={privacyUpdating}
+            className="data-[state=checked]:bg-[#04C99B]"
+          />
+        </div>
+
         {/* Password Change */}
         <div className="flex items-center justify-between py-2">
           <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import MessageBubble from "./MessageBubble";
 import { useChatsStore } from "@/stores/useChatsStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ChatWindowProps {
   chatId: number;
@@ -45,8 +46,18 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white">
-        <h2 className="font-semibold text-slate-900 text-lg">{displayName}</h2>
-        <p className="text-sm text-slate-500">Active now</p>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-11 w-11">
+            <AvatarImage src={otherUser?.profilePic || undefined} alt={displayName} />
+            <AvatarFallback className="bg-[#04C99B]/15 text-[#007AFF] font-semibold">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="font-semibold text-slate-900 text-lg">{displayName}</h2>
+            <p className="text-sm text-slate-500">Active now</p>
+          </div>
+        </div>
       </div>
 
       {/* Messages */}
@@ -59,11 +70,27 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
         ) : (
           <>
             {chatMessages.map((msg) => {
-              const isUser = msg.userId === user?.id;
-              const senderName = isUser ? "You" : msg.user?.username || "Unknown";
+              const isOwn = msg.userId === user?.id;
+              const senderName = isOwn ? "You" : msg.user?.username || "Unknown";
+              const avatarUrl = msg.user?.profilePic || undefined;
+              const recipientId = isOwn ? otherUser?.id : user?.id;
+              const hasBeenRead =
+                isOwn && recipientId
+                  ? Boolean(
+                      msg.readReceipts?.some((receipt) => receipt.userId === recipientId)
+                    )
+                  : false;
 
               return (
-                <MessageBubble key={msg.id} text={msg.messageText} sender={senderName} />
+                <MessageBubble
+                  key={msg.id}
+                  text={msg.messageText}
+                  senderName={senderName}
+                  isOwn={isOwn}
+                  timestamp={msg.createdAt}
+                  avatarUrl={avatarUrl}
+                  isRead={hasBeenRead}
+                />
               );
             })}
 

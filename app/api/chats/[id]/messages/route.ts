@@ -95,9 +95,46 @@ export async function GET(
             profilePic: true,
           },
         },
+        readReceipts: {
+          select: {
+            userId: true,
+            readAt: true,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
+
+    const unreadMessageIds = messages
+      .filter(
+        (msg) =>
+          msg.userId !== user.id &&
+          !msg.readReceipts.some((receipt) => receipt.userId === user.id)
+      )
+      .map((msg) => msg.id);
+
+    if (unreadMessageIds.length > 0) {
+      const receiptData = unreadMessageIds.map((messageId) => ({
+        messageId,
+        userId: user.id,
+        readAt: new Date(),
+      }));
+
+      await prisma.messageReadReceipt.createMany({
+        data: receiptData,
+        skipDuplicates: true,
+      });
+
+      receiptData.forEach((receipt) => {
+        const message = messages.find((msg) => msg.id === receipt.messageId);
+        if (message) {
+          message.readReceipts.push({
+            userId: receipt.userId,
+            readAt: receipt.readAt,
+          });
+        }
+      });
+    }
 
     // Transform messages to include user data
     const transformedMessages = messages.map((msg) => ({
@@ -111,6 +148,10 @@ export async function GET(
       isFlagged: msg.isFlagged,
       createdAt: msg.createdAt.toISOString(),
       user: msg.user,
+      readReceipts: msg.readReceipts.map((receipt) => ({
+        userId: receipt.userId,
+        readAt: receipt.readAt.toISOString(),
+      })),
     }));
 
     return NextResponse.json({ messages: transformedMessages });
@@ -193,6 +234,12 @@ export async function POST(
             profilePic: true,
           },
         },
+        readReceipts: {
+          select: {
+            userId: true,
+            readAt: true,
+          },
+        },
       },
     });
 
@@ -214,6 +261,10 @@ export async function POST(
       isFlagged: message.isFlagged,
       createdAt: message.createdAt.toISOString(),
       user: message.user,
+      readReceipts: message.readReceipts.map((receipt) => ({
+        userId: receipt.userId,
+        readAt: receipt.readAt.toISOString(),
+      })),
     };
 
     return NextResponse.json({ message: transformedMessage }, { status: 201 });

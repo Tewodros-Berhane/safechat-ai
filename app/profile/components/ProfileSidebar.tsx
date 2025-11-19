@@ -11,6 +11,7 @@ interface ProfileSidebarProps {
   profilePic?: string | null;
   name: string;
   username: string;
+  isPrivate?: boolean;
   role: "USER" | "MODERATOR" | "ADMIN";
   dateJoined: Date;
   chatCount?: number;
@@ -25,6 +26,7 @@ export default function ProfileSidebar({
   profilePic,
   name,
   username,
+  isPrivate = false,
   role,
   dateJoined,
   chatCount = 0,
@@ -146,6 +148,10 @@ export default function ProfileSidebar({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Chats</span>
             <span className="font-medium text-gray-900">{chatCount}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Visibility</span>
+            <span className="font-medium text-gray-900">{isPrivate ? "Private" : "Public"}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Joined</span>

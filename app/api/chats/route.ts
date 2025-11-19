@@ -5,6 +5,30 @@ import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 
+const chatUserSelect = {
+  id: true,
+  username: true,
+  profilePic: true,
+};
+
+const chatInclude = {
+  user1: { select: chatUserSelect },
+  user2: { select: chatUserSelect },
+  messages: {
+    orderBy: { createdAt: "desc" },
+    take: 1,
+    include: {
+      user: { select: chatUserSelect },
+      readReceipts: {
+        select: {
+          userId: true,
+          readAt: true,
+        },
+      },
+    },
+  },
+};
+
 // Helper function to get session from token
 async function getSessionFromRequest() {
   try {
@@ -39,28 +63,69 @@ async function getSessionFromRequest() {
   }
 }
 
+async function getCurrentUser() {
+  let session = await getServerSession(authOptions);
+
+  if (!session) {
+    session = await getSessionFromRequest();
+  }
+
+  if (!session?.user?.email) {
+    return null;
+  }
+
+  return prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+}
+
+function transformChat(
+  chat: Awaited<ReturnType<typeof prisma.chat.findFirst>>,
+  unreadCount = 0
+) {
+  if (!chat) {
+    return null;
+  }
+
+  const lastMessage = chat.messages?.[0] || null;
+  return {
+    id: chat.id,
+    user1Id: chat.user1Id,
+    user2Id: chat.user2Id,
+    type: chat.type,
+    title: chat.title,
+    createdAt: chat.createdAt.toISOString(),
+    updatedAt: chat.updatedAt.toISOString(),
+    user1: chat.user1,
+    user2: chat.user2,
+    lastMessage: lastMessage
+      ? {
+          id: lastMessage.id,
+          chatId: lastMessage.chatId,
+          userId: lastMessage.userId,
+          messageText: lastMessage.messageText,
+          toxicityScore: lastMessage.toxicityScore,
+          toxicityCategory: lastMessage.toxicityCategory,
+          emotion: lastMessage.emotion,
+          isFlagged: lastMessage.isFlagged,
+          createdAt: lastMessage.createdAt.toISOString(),
+          user: lastMessage.user,
+          readReceipts: lastMessage.readReceipts.map((receipt) => ({
+            userId: receipt.userId,
+            readAt: receipt.readAt.toISOString(),
+          })),
+        }
+      : undefined,
+    unreadCount,
+  };
+}
+
 // GET all chats for the current user
 export async function GET() {
   try {
-    // Try getServerSession first
-    let session = await getServerSession(authOptions);
-
-    // If that doesn't work, try reading from cookies
-    if (!session) {
-      session = await getSessionFromRequest();
-    }
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Fetch all chats where user is either user1 or user2
@@ -68,73 +133,150 @@ export async function GET() {
       where: {
         OR: [{ user1Id: user.id }, { user2Id: user.id }],
       },
-      include: {
-        user1: {
-          select: {
-            id: true,
-            username: true,
-            profilePic: true,
-          },
-        },
-        user2: {
-          select: {
-            id: true,
-            username: true,
-            profilePic: true,
-          },
-        },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                profilePic: true,
-              },
-            },
-          },
-        },
-      },
+      include: chatInclude,
       orderBy: { updatedAt: "desc" },
     });
 
-    // Transform chats to include last message
-    const transformedChats = chats.map((chat) => {
-      const lastMessage = chat.messages[0] || null;
-      return {
-        id: chat.id,
-        user1Id: chat.user1Id,
-        user2Id: chat.user2Id,
-        type: chat.type,
-        title: chat.title,
-        createdAt: chat.createdAt.toISOString(),
-        updatedAt: chat.updatedAt.toISOString(),
-        user1: chat.user1,
-        user2: chat.user2,
-        lastMessage: lastMessage
-          ? {
-              id: lastMessage.id,
-              chatId: lastMessage.chatId,
-              userId: lastMessage.userId,
-              messageText: lastMessage.messageText,
-              toxicityScore: lastMessage.toxicityScore,
-              toxicityCategory: lastMessage.toxicityCategory,
-              emotion: lastMessage.emotion,
-              isFlagged: lastMessage.isFlagged,
-              createdAt: lastMessage.createdAt.toISOString(),
-              user: lastMessage.user,
-            }
-          : undefined,
-      };
-    });
+    const chatIds = chats.map((chat) => chat.id);
+    const unreadCountsRaw =
+      chatIds.length > 0
+        ? await prisma.message.groupBy({
+            by: ["chatId"],
+            where: {
+              chatId: { in: chatIds },
+              userId: { not: user.id },
+              readReceipts: {
+                none: {
+                  userId: user.id,
+                },
+              },
+            },
+            _count: {
+              _all: true,
+            },
+          })
+        : [];
 
-    return NextResponse.json({ chats: transformedChats });
+    const unreadCountMap = new Map<number, number>(
+      unreadCountsRaw.map((entry) => [entry.chatId, entry._count._all])
+    );
+
+    // Transform chats to include last message
+    const transformedChats = chats.map((chat) =>
+      transformChat(chat, unreadCountMap.get(chat.id) || 0)
+    );
+
+    return NextResponse.json({
+      chats: transformedChats.filter((chat) => chat !== null),
+    });
   } catch (error) {
     console.error("Error fetching chats:", error);
     return NextResponse.json(
       { error: "Failed to fetch chats" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST create a new direct chat (respecting privacy rules)
+export async function POST(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const targetUserId = Number(body?.targetUserId);
+
+    if (!targetUserId || Number.isNaN(targetUserId)) {
+      return NextResponse.json(
+        { error: "A valid target user is required" },
+        { status: 400 }
+      );
+    }
+
+    if (targetUserId === user.id) {
+      return NextResponse.json(
+        { error: "You cannot start a chat with yourself" },
+        { status: 400 }
+      );
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, username: true, isPrivate: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const existingChat = await prisma.chat.findFirst({
+      where: {
+        OR: [
+          { user1Id: user.id, user2Id: targetUserId },
+          { user1Id: targetUserId, user2Id: user.id },
+        ],
+      },
+      include: chatInclude,
+    });
+
+    if (existingChat) {
+      return NextResponse.json(
+        { chat: transformChat(existingChat, 0) },
+        { status: 200 }
+      );
+    }
+
+    if (targetUser.isPrivate) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { userAId: user.id, userBId: targetUserId },
+            { userAId: targetUserId, userBId: user.id },
+          ],
+        },
+      });
+
+      if (!friendship) {
+        return NextResponse.json(
+          {
+            error:
+              "This user is private. Send a friend request and wait for approval to start chatting.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const newChat = await prisma.chat.create({
+      data: {
+        user1Id: user.id,
+        user2Id: targetUserId,
+        type: "direct",
+      },
+      include: chatInclude,
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: targetUserId,
+        type: "CHAT",
+        title: "New chat started",
+        content: `${user.username} started a chat with you`,
+        chatId: newChat.id,
+      },
+    });
+
+    return NextResponse.json(
+      { chat: transformChat(newChat, 0) },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error creating chat:", error);
+    return NextResponse.json(
+      { error: "Failed to create chat" },
       { status: 500 }
     );
   }
