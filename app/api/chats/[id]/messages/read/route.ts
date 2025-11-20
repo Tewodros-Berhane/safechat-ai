@@ -80,7 +80,9 @@ export async function POST(
 
     const body = await request.json().catch(() => null);
     const messageIds: number[] | undefined = Array.isArray(body?.messageIds)
-      ? body.messageIds.map((id: unknown) => Number(id)).filter((id) => !Number.isNaN(id))
+      ? body.messageIds
+          .map((id: unknown) => Number(id))
+          .filter((id): id is number => !Number.isNaN(id))
       : undefined;
 
     const messages = await prisma.message.findMany({
