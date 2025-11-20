@@ -58,6 +58,16 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
   const [chattingUserId, setChattingUserId] = useState<number | null>(null);
   const [requestingUserId, setRequestingUserId] = useState<number | null>(null);
 
+  const getExistingChatWithUser = (userId: number) => {
+    if (!user) return null;
+    return (
+      chats.find((chat) => {
+        const otherUser = getOtherUser(chat, user.id);
+        return otherUser?.id === userId;
+      }) || null
+    );
+  };
+
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
@@ -190,7 +200,9 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                   </div>
                 ) : (
                   searchResults.map((result) => {
-                    const startChatDisabled = !canStartChat(result);
+                    const existingChat = getExistingChatWithUser(result.id);
+                    const hasExistingChat = !!existingChat;
+                    const startChatDisabled = !hasExistingChat && !canStartChat(result);
                     const requestDisabled = !canSendFriendRequest(result);
                     const isRequesting = requestingUserId === result.id;
                     const isStartingChat = chattingUserId === result.id;
@@ -248,10 +260,17 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             variant={startChatDisabled ? "outline" : "default"}
-                            disabled={startChatDisabled || isStartingChat}
-                            onClick={() => handleStartChat(result.id)}
+                            disabled={!hasExistingChat && (startChatDisabled || isStartingChat)}
+                            onClick={() => {
+                              if (existingChat) {
+                                onSelectChat(existingChat.id);
+                                setIsNewChatOpen(false);
+                              } else {
+                                handleStartChat(result.id);
+                              }
+                            }}
                           >
-                            {isStartingChat ? "Starting…" : "Start Chat"}
+                            {isStartingChat ? "Starting…" : hasExistingChat ? "Continue Chat" : "Start Chat"}
                           </Button>
                           <Button
                             variant="outline"
