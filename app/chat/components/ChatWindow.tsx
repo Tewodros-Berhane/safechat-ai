@@ -27,9 +27,10 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
   const otherUser = user && chat ? getOtherUser(chat, user.id) : null;
   const displayName = otherUser?.username || "Unknown User";
   const presence = getPresenceInfo({
-    isPrivate: otherUser?.isPrivate,
-    isOnline: otherUser?.isOnline,
-    lastSeen: otherUser?.lastSeen,
+    isPrivate: false,
+    isOnline: false,
+    lastSeen: undefined,
+    ...otherUser,
   });
   useEffect(() => {
     fetchMessages(chatId);
@@ -62,7 +63,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                 {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {!otherUser?.isPrivate && otherUser?.isOnline && (
+            {presence.showDot && (
               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
             )}
           </div>
