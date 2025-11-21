@@ -37,6 +37,7 @@ interface PresencePayload {
 }
 
 let socket: Socket | null = null;
+let audioContext: AudioContext | null = null;
 
 const getSocket = () => {
   if (!socket) {
@@ -46,6 +47,38 @@ const getSocket = () => {
     });
   }
   return socket;
+};
+
+const playNotificationTone = () => {
+  try {
+    if (!audioContext) {
+      const AudioContextCtor =
+        typeof window !== "undefined"
+          ? window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+          : undefined;
+      if (!AudioContextCtor) return;
+      audioContext = new AudioContextCtor();
+    }
+    const ctx = audioContext;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.value = 0.04;
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+    oscillator.stop(ctx.currentTime + 0.3);
+  } catch (error) {
+    console.warn("Notification sound blocked or failed", error);
+  }
 };
 
 export default function RealtimeProvider() {
@@ -162,8 +195,13 @@ export default function RealtimeProvider() {
     };
 
     const handleNotification = (payload: NotificationEventPayload) => {
-      const { addNotification } = useNotificationsStore.getState();
-      addNotification(payload.notification);
+      const store = useNotificationsStore.getState();
+      const beforeUnread = store.getUnreadCount();
+      store.addNotification(payload.notification);
+      const afterUnread = store.getUnreadCount();
+      if (afterUnread > beforeUnread) {
+        playNotificationTone();
+      }
     };
 
     const handleNewChat = (payload: ChatEventPayload) => {

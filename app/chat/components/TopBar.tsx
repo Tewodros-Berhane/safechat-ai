@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Dot, Menu, User, LogOut, ChevronRight } from "lucide-react";
+import { Bell, Menu, User, LogOut, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserStore } from "@/stores/useUserStore";
@@ -99,7 +99,9 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
             <button className="relative hover:bg-slate-100 p-2 rounded-lg transition-all">
               <Bell className="w-5 h-5 text-slate-700" />
               {unreadCount > 0 && (
-                <Dot className="absolute top-1 right-1 w-4 h-4 text-[#04C99B]" />
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#007AFF] px-1 text-[11px] font-semibold text-white shadow-md">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
               )}
             </button>
           </DropdownMenuTrigger>
