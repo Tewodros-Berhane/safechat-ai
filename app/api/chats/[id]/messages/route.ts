@@ -30,9 +30,9 @@ const serializeUser = (
 ): SerializedParticipant | undefined =>
   user
     ? ({
-        ...user,
-        lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
-      } as SerializedParticipant)
+      ...user,
+      lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
+    } as SerializedParticipant)
     : undefined;
 
 // Helper function to get session from token
@@ -302,6 +302,26 @@ export async function POST(
         },
       },
     });
+
+    // ⚠️ TODO: FASTAPI AI MODERATION INTEGRATION - USER SIDE
+    // Send message to FastAPI endpoint for AI moderation analysis
+    // POST to: process.env.FASTAPI_MODERATION_URL || 'http://localhost:8000/api/moderate'
+    // Payload: {
+    //   messageId: message.id,
+    //   messageText: message.messageText,
+    //   userId: user.id,
+    //   chatId: chatId,
+    //   timestamp: message.createdAt
+    // }
+    // Expected response: {
+    //   isFlagged: boolean,
+    //   toxicityScore: number,
+    //   toxicityCategory: string | null,
+    //   emotion: string | null,
+    //   shouldBlock: boolean  // if true, delete the message and notify user
+    // }
+    // If isFlagged=true, update message in database and send to moderator dashboard via WebSocket
+    // ⚠️ END FASTAPI INTEGRATION
 
     // Update chat's updatedAt timestamp
     await prisma.chat.update({

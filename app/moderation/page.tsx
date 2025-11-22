@@ -68,6 +68,24 @@ export default function ModerationPage() {
       ws.onopen = () => setConnectionStatus("connected");
       ws.onmessage = (event) => {
         try {
+          // ⚠️ TODO: FASTAPI AI MODERATION INTEGRATION - MODERATOR SIDE
+          // WebSocket receives flagged messages from FastAPI AI moderation endpoint
+          // Expected data format from FastAPI:
+          // {
+          //   messageId: string,
+          //   senderId: string,
+          //   senderName: string,
+          //   content: string,
+          //   timestamp: string (ISO),
+          //   flaggedAt: string (ISO),
+          //   category: "hate_speech" | "harassment" | "violence" | "spam" | "other",
+          //   severity: "low" | "medium" | "high" | "critical",
+          //   toxicityScore: number (0-1),
+          //   aiReasoning: string,  // AI explanation of why it was flagged
+          //   emotion: string | null,
+          //   status: "pending" | "reviewed"
+          // }
+          // ⚠️ END FASTAPI INTEGRATION
           const data = JSON.parse(event.data);
           addFlaggedMessage(data);
           setLastEventAt(new Date().toISOString());
@@ -141,6 +159,23 @@ export default function ModerationPage() {
       if (!response.ok) {
         throw new Error(`Failed to ${action} message`);
       }
+
+      // ⚠️ TODO: FASTAPI AI MODERATION INTEGRATION - MODERATOR FEEDBACK
+      // Send moderator decision back to FastAPI for ML model improvement
+      // POST to: process.env.FASTAPI_FEEDBACK_URL || 'http://localhost:8000/api/moderation/feedback'
+      // Payload: {
+      //   messageId: selectedMessage.messageId,
+      //   moderatorAction: action,  // "approve" | "warn" | "mute" | "delete"
+      //   moderatorNotes: selectedMessage.notes,
+      //   originalPrediction: {
+      //     toxicityScore: selectedMessage.toxicityScore,
+      //     category: selectedMessage.category,
+      //     severity: selectedMessage.severity
+      //   },
+      //   timestamp: new Date().toISOString()
+      // }
+      // This feedback helps the AI model learn from moderator decisions
+      // ⚠️ END FASTAPI INTEGRATION
 
       markMessageStatus(selectedMessage.messageId, "reviewed");
       toast.success(
