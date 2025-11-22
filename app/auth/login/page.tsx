@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,19 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+
+  // Check for error messages from reset password redirects
+  useEffect(() => {
+    if (!searchParams) return;
+    const error = searchParams.get("error");
+    if (error === "missing-token") {
+      toast.error("Reset link is missing. Please request a new password reset.");
+    } else if (error === "invalid-token") {
+      toast.error("Reset link has expired or is invalid. Please request a new one.");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +66,7 @@ export default function LoginPage() {
                 SafeChat<span className="text-[#04C99B]">.AI</span>
               </span>
             </div>
-            </Link>
+          </Link>
           <div className="text-center">
             <CardTitle className="text-2xl font-semibold text-gray-800">
               Welcome back

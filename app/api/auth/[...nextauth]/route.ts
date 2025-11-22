@@ -41,6 +41,30 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/login",
   },
+  callbacks: {
+    async jwt({ token, user }) {
+      // Add user id and role to the token on initial sign in
+      if (user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: Number(user.id) },
+          select: { id: true, role: true },
+        });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Add user id and role to the session
+      if (token && session.user) {
+        session.user.id = token.id as number;
+        session.user.role = token.role as string;
+      }
+      return session;
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
