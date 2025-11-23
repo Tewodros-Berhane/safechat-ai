@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
 
 interface TopBarProps {
   moderatorName?: string;
@@ -52,7 +53,13 @@ export default function TopBar({ moderatorName = "Moderator", pendingCount }: To
             <DropdownMenuItem className="cursor-default text-slate-700">Profile</DropdownMenuItem>
             <DropdownMenuItem className="cursor-default text-slate-700">Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600 focus:text-red-600">
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600"
+              onSelect={(event) => {
+                event.preventDefault();
+                signOut({ callbackUrl: "/auth/login" });
+              }}
+            >
               <LogOut className="h-4 w-4" />
               Logout
             </DropdownMenuItem>

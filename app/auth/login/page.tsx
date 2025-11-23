@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,16 @@ export default function LoginPage() {
 
     toast.success("Logged in successfully!");
 
-    router.push("/chat");
+    // Route by role
+    const session = await getSession();
+    const role = session?.user?.role;
+    if (role === "ADMIN") {
+      router.push("/admin");
+    } else if (role === "MODERATOR") {
+      router.push("/moderation");
+    } else {
+      router.push("/chat");
+    }
   };
 
   return (

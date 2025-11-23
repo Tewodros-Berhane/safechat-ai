@@ -6,11 +6,16 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Check if user is trying to access moderation routes
+    // Moderation access (mods or admins)
     if (path.startsWith("/moderation")) {
-      // Check if user has moderator or admin role
       if (!token?.role || (token.role !== "MODERATOR" && token.role !== "ADMIN")) {
-        // Redirect to home page or show access denied
+        return NextResponse.redirect(new URL("/", req.url));
+      }
+    }
+
+    // Admin-only routes
+    if (path.startsWith("/admin")) {
+      if (!token?.role || token.role !== "ADMIN") {
         return NextResponse.redirect(new URL("/", req.url));
       }
     }
@@ -28,5 +33,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/chat/:path*", "/profile/:path*", "/moderation/:path*"],
+  matcher: ["/chat/:path*", "/profile/:path*", "/moderation/:path*", "/admin/:path*"],
 };
