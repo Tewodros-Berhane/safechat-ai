@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+transformers[torch]
+httpx
+python-dotenv
+loguru
+orjson
+pytest
