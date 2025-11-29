@@ -88,6 +88,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
               const senderName = isOwn ? "You" : msg.user?.username || "Unknown";
               const avatarUrl = msg.user?.profilePic || undefined;
               const recipientId = isOwn ? otherUser?.id : user?.id;
+              const status = msg.status || "sent";
               const hasBeenRead =
                 isOwn && recipientId
                   ? Boolean(
@@ -104,6 +105,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                   timestamp={msg.createdAt}
                   avatarUrl={avatarUrl}
                   isRead={hasBeenRead}
+                  status={status}
                 />
               );
             })}

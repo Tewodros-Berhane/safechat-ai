@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFriendsStore } from "@/stores/useFriendsStore";
-import { Search, Users, Shield, CheckCheck } from "lucide-react";
+import { Search, Users, Shield, Check, CheckCheck } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { getPresenceInfo } from "@/lib/presence";
 
@@ -366,12 +366,11 @@ export default function ChatSidebar({ onSelectChat, selectedChat }: ChatSidebarP
                       </div>
                       <div className="flex items-center gap-1 text-sm text-slate-500 truncate">
                         {isLastMessageFromUser && (
-                          <CheckCheck
-                            className={cn(
-                              "h-4 w-4",
-                              otherHasRead ? "text-[#04C99B]" : "text-slate-400"
-                            )}
-                          />
+                          otherHasRead ? (
+                            <CheckCheck className="h-4 w-4 text-[#04C99B]" aria-label="Read" />
+                          ) : (
+                            <Check className="h-4 w-4 text-slate-400" aria-label="Sent" />
+                          )
                         )}
                         <span className="truncate">{lastMessageText}</span>
                       </div>

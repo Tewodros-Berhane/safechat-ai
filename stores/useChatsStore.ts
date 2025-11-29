@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useUserStore } from "./useUserStore";
 
 export interface Message {
   id: number;
@@ -10,6 +11,7 @@ export interface Message {
   emotion: string | null;
   isFlagged: boolean;
   createdAt: string;
+  status?: "pending" | "failed" | "sent";
   user?: {
     id: number;
     username: string;
@@ -60,6 +62,7 @@ const normalizeMessage = (message: Message | undefined): Message | undefined => 
   return {
     ...message,
     readReceipts: message.readReceipts || [],
+    status: message.status || "sent",
   };
 };
 
@@ -190,20 +193,19 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
     set((state) => ({
       messages: {
         ...state.messages,
-        [chatId]: messages.map((msg) => ({
-          ...msg,
-          readReceipts: msg.readReceipts || [],
-        })),
+        [chatId]: messages
+          .map((msg) => normalizeMessage(msg))
+          .filter((msg): msg is Message => Boolean(msg)),
       },
       messagesLoading: { ...state.messagesLoading, [chatId]: false },
     })),
 
   addMessage: (chatId, message) =>
     set((state) => {
-      const normalizedMessage = {
-        ...message,
-        readReceipts: message.readReceipts || [],
-      };
+      const normalizedMessage = normalizeMessage(message);
+      if (!normalizedMessage) {
+        return { messages: state.messages };
+      }
       return {
         messages: {
           ...state.messages,
@@ -287,11 +289,44 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
   },
 
   sendMessage: async (chatId, messageText) => {
+    const trimmed = messageText.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const currentUser = useUserStore.getState().user;
+    const tempId = Date.now() * -1;
+    const optimisticMessage: Message = {
+      id: tempId,
+      chatId,
+      userId: currentUser?.id ?? -1,
+      messageText: trimmed,
+      toxicityScore: null,
+      toxicityCategory: null,
+      emotion: null,
+      isFlagged: false,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+      user: currentUser
+        ? {
+            id: currentUser.id,
+            username: currentUser.username,
+            profilePic: currentUser.profilePic,
+            isPrivate: currentUser.isPrivate,
+            isOnline: currentUser.isOnline,
+            lastSeen: currentUser.lastSeen ?? null,
+          }
+        : undefined,
+      readReceipts: [],
+    };
+
+    get().addMessage(chatId, optimisticMessage);
+
     try {
       const response = await fetch(`/api/chats/${chatId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageText }),
+        body: JSON.stringify({ messageText: trimmed }),
       });
 
       if (!response.ok) {
@@ -299,13 +334,28 @@ export const useChatsStore = create<ChatsState>((set, get) => ({
       }
 
       const data = await response.json();
-      const newMessage = data.message;
-      get().addMessage(chatId, newMessage);
-      return newMessage;
+      const newMessage = normalizeMessage({
+        ...data.message,
+        status: "sent" as const,
+      });
+
+      if (newMessage) {
+        get().updateMessage(chatId, tempId, { ...newMessage });
+        get().updateChat(chatId, {
+          lastMessage: newMessage,
+          updatedAt: newMessage.createdAt,
+        });
+      }
+
+      return newMessage || null;
     } catch (error) {
       console.error("Error sending message:", error);
       set({
         error: error instanceof Error ? error.message : "Failed to send message",
+      });
+      get().updateMessage(chatId, tempId, { status: "failed" });
+      get().updateChat(chatId, {
+        lastMessage: { ...optimisticMessage, status: "failed" },
       });
       return null;
     }
