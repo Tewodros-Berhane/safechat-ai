@@ -24,6 +24,22 @@ class Settings(BaseSettings):
 
     INTERNAL_API_KEY: str = "supersecret_internal_key"
 
+    # Moderation thresholds
+    TOXIC_THRESHOLD: float = 0.60
+    HIGH_RISK_THRESHOLD: float = 0.85
+
+    # Callback to Next.js backend (for escalations/blocks)
+    NEXT_API_BASE_URL: Optional[AnyHttpUrl] = None
+    NEXT_API_KEY: Optional[str] = None
+
+    # Caching/cooldown
+    MODERATION_CACHE_TTL_SECONDS: int = 10
+    MODERATION_COOLDOWN_SECONDS: float = 0.2
+
+    # Websocket batching
+    WS_BATCH_SIZE: int = 32
+    WS_BATCH_WAIT_SECONDS: float = 0.01
+
     class Config:
         case_sensitive = True
 
